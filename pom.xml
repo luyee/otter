@@ -9,7 +9,7 @@
 	<artifactId>otter</artifactId>
 	<packaging>pom</packaging>
 	<name>otter</name>
-	<version>4.2.13-SNAPSHOT</version>
+	<version>4.2.14-SNAPSHOT</version>
 	<inceptionYear>2011</inceptionYear>
 	<url>http://github.com/alibaba/otter</url>
 	<organization>
@@ -118,7 +118,7 @@
 		<file_encoding>UTF-8</file_encoding>
 		<spring-version>3.1.2.RELEASE</spring-version>
 		<jetty_verion>8.1.7.v20120910</jetty_verion>
-		<otter_canal_version>1.0.22-SNAPSHOT</otter_canal_version>
+		<otter_canal_version>1.0.23-SNAPSHOT</otter_canal_version>
 	</properties>
 
 	<modules>
@@ -178,7 +178,7 @@
 			<dependency>
 				<groupId>com.google.protobuf</groupId>
 				<artifactId>protobuf-java</artifactId>
-				<version>2.4.1</version>
+				<version>2.6.1</version>
 			</dependency>
 			<!-- zookeeper -->
 			<dependency>
