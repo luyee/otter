@@ -17,12 +17,13 @@
 package com.alibaba.otter.node.etl.load.loader;
 
 import java.util.Collection;
-import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.alibaba.otter.shared.etl.model.Identity;
-import com.google.common.base.Function;
-import com.google.common.collect.MapMaker;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 
 /**
  * 统计跟踪器
@@ -32,46 +33,58 @@ import com.google.common.collect.MapMaker;
  */
 public class LoadStatsTracker {
 
-    private Map<Identity, LoadThroughput> throughputs;
+    private LoadingCache<Identity, LoadThroughput> throughputs;
 
     public LoadStatsTracker(){
-        throughputs = new MapMaker().makeComputingMap(new Function<Identity, LoadThroughput>() {
+        throughputs =  CacheBuilder.newBuilder().maximumSize(1000)
+    			.build(new CacheLoader<Identity, LoadThroughput>() {
 
-            public LoadThroughput apply(Identity identity) {
+            public LoadThroughput load(Identity identity) {
                 return new LoadThroughput(identity);
             }
         });
     }
 
     public LoadThroughput getStat(Identity identity) {
-        return throughputs.get(identity);
+        try {
+			return throughputs.get(identity);
+		} catch (ExecutionException e) {
+			e.printStackTrace();
+			return null;
+		}
     }
 
     public void removeStat(Identity identity) {
-        throughputs.remove(identity);
+        throughputs.invalidate(identity);
     }
 
     public static class LoadThroughput {
 
         private Identity               identity;
         private Long                   startTime;
-        private Map<Long, LoadCounter> counters;
+        private LoadingCache<Long, LoadCounter> counters;
 
         public LoadThroughput(Identity identity){
-            counters = new MapMaker().makeComputingMap(new Function<Long, LoadCounter>() {
+            counters = CacheBuilder.newBuilder().maximumSize(1000)
+        			.build(new CacheLoader<Long, LoadCounter>() {
 
-                public LoadCounter apply(Long pairId) {
+                public LoadCounter load(Long pairId) {
                     return new LoadCounter(pairId);
                 }
             });
         }
 
         public LoadCounter getStat(Long pairId) {
-            return counters.get(pairId);
+            try {
+				return counters.get(pairId);
+			} catch (ExecutionException e) {
+				e.printStackTrace();
+				return null;
+			}
         }
 
         public Collection<LoadCounter> getStats() {
-            return counters.values();
+            return counters.asMap().values();
         }
 
         public Identity getIdentity() {

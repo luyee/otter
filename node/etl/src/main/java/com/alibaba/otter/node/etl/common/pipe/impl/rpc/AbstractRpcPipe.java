@@ -16,7 +16,6 @@
 
 package com.alibaba.otter.node.etl.common.pipe.impl.rpc;
 
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.InitializingBean;
@@ -25,7 +24,9 @@ import com.alibaba.otter.node.etl.common.pipe.Pipe;
 import com.alibaba.otter.shared.communication.core.model.Event;
 import com.alibaba.otter.shared.communication.core.model.EventType;
 import com.alibaba.otter.shared.etl.model.DbBatch;
-import com.google.common.collect.MapMaker;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 
 /**
  * 基于rpc通讯的数据传递
@@ -42,10 +43,17 @@ public abstract class AbstractRpcPipe<T, KEY extends RpcPipeKey> implements Pipe
 
     protected Long                     timeout = 60 * 1000L; // 对应的超时时间,1分钟
 
-    protected Map<RpcPipeKey, DbBatch> cache;
+    protected LoadingCache<RpcPipeKey, DbBatch> cache;
 
     public void afterPropertiesSet() throws Exception {
-        cache = new MapMaker().expireAfterWrite(timeout, TimeUnit.MILLISECONDS).softValues().makeMap();
+        cache = CacheBuilder.newBuilder().maximumSize(1000).expireAfterWrite(timeout, TimeUnit.MILLISECONDS).softValues().build(new CacheLoader<RpcPipeKey, DbBatch>(){
+
+			@Override
+			public DbBatch load(RpcPipeKey key) throws Exception {
+				return new DbBatch();
+			}
+        	
+        });
     }
 
     // rpc get操作事件

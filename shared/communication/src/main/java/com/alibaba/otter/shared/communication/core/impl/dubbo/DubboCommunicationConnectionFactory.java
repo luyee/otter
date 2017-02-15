@@ -17,7 +17,7 @@
 package com.alibaba.otter.shared.communication.core.impl.dubbo;
 
 import java.text.MessageFormat;
-import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import com.alibaba.dubbo.common.URL;
 import com.alibaba.dubbo.common.extension.ExtensionLoader;
@@ -27,8 +27,9 @@ import com.alibaba.otter.shared.communication.core.CommunicationEndpoint;
 import com.alibaba.otter.shared.communication.core.impl.connection.CommunicationConnection;
 import com.alibaba.otter.shared.communication.core.impl.connection.CommunicationConnectionFactory;
 import com.alibaba.otter.shared.communication.core.model.CommunicationParam;
-import com.google.common.base.Function;
-import com.google.common.collect.MapMaker;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 
 /**
  * dubbo rpc服务链接的factory
@@ -38,36 +39,45 @@ import com.google.common.collect.MapMaker;
  */
 public class DubboCommunicationConnectionFactory implements CommunicationConnectionFactory {
 
-    private final String                       DUBBO_SERVICE_URL = "dubbo://{0}:{1}/endpoint?client=netty&codec=dubbo&serialization=java&lazy=true&iothreads=4&threads=50&connections=30&acceptEvent.timeout=50000";
+	private final String DUBBO_SERVICE_URL = "dubbo://{0}:{1}/endpoint?client=netty&codec=dubbo&serialization=java&lazy=true&iothreads=4&threads=50&connections=30&acceptEvent.timeout=50000";
 
-    private DubboProtocol                      protocol          = DubboProtocol.getDubboProtocol();
-    private ProxyFactory                       proxyFactory      = ExtensionLoader.getExtensionLoader(ProxyFactory.class).getExtension("javassist");
+	private DubboProtocol protocol = DubboProtocol.getDubboProtocol();
+	private ProxyFactory proxyFactory = ExtensionLoader.getExtensionLoader(ProxyFactory.class)
+			.getExtension("javassist");
 
-    private Map<String, CommunicationEndpoint> connections       = null;
+	private LoadingCache<String, CommunicationEndpoint> connections = null;
 
-    public DubboCommunicationConnectionFactory(){
-        connections = new MapMaker().makeComputingMap(new Function<String, CommunicationEndpoint>() {
+	public DubboCommunicationConnectionFactory() {
+		connections = CacheBuilder.newBuilder().maximumSize(1000)
+				.build(new CacheLoader<String, CommunicationEndpoint>() {
 
-            public CommunicationEndpoint apply(String serviceUrl) {
-                return proxyFactory.getProxy(protocol.refer(CommunicationEndpoint.class, URL.valueOf(serviceUrl)));
-            }
-        });
-    }
+					@Override
+					public CommunicationEndpoint load(String serviceUrl) throws Exception {
+						return proxyFactory
+								.getProxy(protocol.refer(CommunicationEndpoint.class, URL.valueOf(serviceUrl)));
+					}
+				});
+	}
 
-    public CommunicationConnection createConnection(CommunicationParam params) {
-        if (params == null) {
-            throw new IllegalArgumentException("param is null!");
-        }
+	public CommunicationConnection createConnection(CommunicationParam params) {
+		if (params == null) {
+			throw new IllegalArgumentException("param is null!");
+		}
 
-        // 构造对应的url
-        String serviceUrl = MessageFormat.format(DUBBO_SERVICE_URL, params.getIp(), String.valueOf(params.getPort()));
-        CommunicationEndpoint endpoint = connections.get(serviceUrl);
-        return new DubboCommunicationConnection(params, endpoint);
+		// 构造对应的url
+		String serviceUrl = MessageFormat.format(DUBBO_SERVICE_URL, params.getIp(), String.valueOf(params.getPort()));
+		CommunicationEndpoint endpoint;
+		try {
+			endpoint = connections.get(serviceUrl);
+			return new DubboCommunicationConnection(params, endpoint);
+		} catch (ExecutionException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
 
-    }
-
-    public void releaseConnection(CommunicationConnection connection) {
-        // do nothing
-    }
+	public void releaseConnection(CommunicationConnection connection) {
+		// do nothing
+	}
 
 }

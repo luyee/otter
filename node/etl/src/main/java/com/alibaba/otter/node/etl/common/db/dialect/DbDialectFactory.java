@@ -22,6 +22,7 @@ import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import javax.sql.DataSource;
 
@@ -34,10 +35,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.alibaba.otter.node.etl.common.datasource.DataSourceService;
 import com.alibaba.otter.shared.common.model.config.data.db.DbMediaSource;
-import com.google.common.base.Function;
-import com.google.common.collect.GenericMapMaker;
-import com.google.common.collect.MapEvictionListener;
-import com.google.common.collect.MapMaker;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
 
 /**
  * @author jianghang 2011-10-27 下午02:12:06
@@ -49,33 +51,37 @@ public class DbDialectFactory implements DisposableBean {
     private DataSourceService                        dataSourceService;
     private DbDialectGenerator                       dbDialectGenerator;
 
-    // 第一层pipelineId , 第二层DbMediaSource id
-    private Map<Long, Map<DbMediaSource, DbDialect>> dialects;
-
+ // 第一层pipelineId , 第二层DbMediaSource id
+ 	private LoadingCache<Long, LoadingCache<DbMediaSource, DbDialect>> dialects;
+ 	
     public DbDialectFactory(){
         // 构建第一层map
-        GenericMapMaker mapMaker = null;
-        mapMaker = new MapMaker().softValues()
-            .evictionListener(new MapEvictionListener<Long, Map<DbMediaSource, DbDialect>>() {
+    			CacheBuilder<Long, LoadingCache<DbMediaSource, DbDialect>> cacheBuilder = CacheBuilder.newBuilder().maximumSize(1000)
+    					.softValues().removalListener(new RemovalListener<Long, LoadingCache<DbMediaSource, DbDialect>>() {
 
-                public void onEviction(Long pipelineId, Map<DbMediaSource, DbDialect> dialect) {
-                    if (dialect == null) {
-                        return;
-                    }
+    						@Override
+    						public void onRemoval(
+    								RemovalNotification<Long, LoadingCache<DbMediaSource, DbDialect>> paramRemovalNotification) {
+    							if (paramRemovalNotification.getValue() == null) {
+    								return;
+    							}
 
-                    for (DbDialect dbDialect : dialect.values()) {
-                        dbDialect.destory();
-                    }
-                }
-            });
+    							for (DbDialect dbDialect : paramRemovalNotification.getValue().asMap().values()) {
+    								dbDialect.destory();
+    							}
+    						}
+    					});
 
-        dialects = mapMaker.makeComputingMap(new Function<Long, Map<DbMediaSource, DbDialect>>() {
 
-            public Map<DbMediaSource, DbDialect> apply(final Long pipelineId) {
+        dialects =cacheBuilder.build(new CacheLoader<Long, LoadingCache<DbMediaSource, DbDialect>>() {
+
+            public LoadingCache<DbMediaSource, DbDialect> load(final Long pipelineId) {
                 // 构建第二层map
-                return new MapMaker().makeComputingMap(new Function<DbMediaSource, DbDialect>() {
+                return CacheBuilder.newBuilder().maximumSize(1000)
+						.build(new CacheLoader<DbMediaSource, DbDialect>() {
 
-                    public DbDialect apply(final DbMediaSource source) {
+                    @SuppressWarnings("unchecked")
+					public DbDialect load(final DbMediaSource source) {
                         DataSource dataSource = dataSourceService.getDataSource(pipelineId, source);
                         final JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
                         return (DbDialect) jdbcTemplate.execute(new ConnectionCallback() {
@@ -114,20 +120,31 @@ public class DbDialectFactory implements DisposableBean {
     }
 
     public DbDialect getDbDialect(Long pipelineId, DbMediaSource source) {
-        return dialects.get(pipelineId).get(source);
+        try {
+			return dialects.get(pipelineId).get(source);
+		} catch (ExecutionException e) {
+			e.printStackTrace();
+			return null;
+		}
     }
 
     public void destory(Long pipelineId) {
-        Map<DbMediaSource, DbDialect> dialect = dialects.remove(pipelineId);
-        if (dialect != null) {
-            for (DbDialect dbDialect : dialect.values()) {
-                dbDialect.destory();
-            }
-        }
+		try {
+			LoadingCache<DbMediaSource, DbDialect>  dialect = dialects.get(pipelineId);
+			if (dialect != null) {
+	            for (DbDialect dbDialect : dialect.asMap().values()) {
+	                dbDialect.destory();
+	            }
+	        }
+	        dialects.invalidate(pipelineId);
+		} catch (ExecutionException e) {
+			e.printStackTrace();
+		}
+        
     }
 
     public void destroy() throws Exception {
-        Set<Long> pipelineIds = new HashSet<Long>(dialects.keySet());
+        Set<Long> pipelineIds = new HashSet<Long>(dialects.asMap().keySet());
         for (Long pipelineId : pipelineIds) {
             destory(pipelineId);
         }

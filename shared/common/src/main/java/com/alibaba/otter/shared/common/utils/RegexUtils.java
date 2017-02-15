@@ -16,7 +16,7 @@
 
 package com.alibaba.otter.shared.common.utils;
 
-import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.oro.text.regex.MalformedPatternException;
@@ -26,8 +26,9 @@ import org.apache.oro.text.regex.PatternMatcher;
 import org.apache.oro.text.regex.Perl5Compiler;
 import org.apache.oro.text.regex.Perl5Matcher;
 
-import com.google.common.base.Function;
-import com.google.common.collect.MapMaker;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 
 /**
  * @author simon 2012-9-25 下午5:01:48
@@ -35,19 +36,21 @@ import com.google.common.collect.MapMaker;
  */
 public class RegexUtils {
 
-    private static Map<String, Pattern> patterns = null;
+    private static LoadingCache<String, Pattern> patterns = null;
 
     static {
-        patterns = new MapMaker().softValues().makeComputingMap(new Function<String, Pattern>() {
+        patterns =  CacheBuilder.newBuilder().maximumSize(1000)
+    			.build(new CacheLoader<String, Pattern>() {
 
-            public Pattern apply(String pattern) {
-                try {
+        			@Override
+			public Pattern load(String pattern) throws Exception {
+				try {
                     PatternCompiler pc = new Perl5Compiler();
                     return pc.compile(pattern, Perl5Compiler.CASE_INSENSITIVE_MASK | Perl5Compiler.READ_ONLY_MASK);
                 } catch (MalformedPatternException e) {
                     throw new RuntimeException("Regex failed!", e);
                 }
-            }
+			}
         });
     }
 
@@ -57,9 +60,13 @@ public class RegexUtils {
         }
 
         PatternMatcher matcher = new Perl5Matcher();
-        if (matcher.contains(originalStr, patterns.get(regex))) {
-            return StringUtils.trimToEmpty(matcher.getMatch().group(0));
-        }
+        try {
+			if (matcher.contains(originalStr, patterns.get(regex))) {
+			    return StringUtils.trimToEmpty(matcher.getMatch().group(0));
+			}
+		} catch (ExecutionException e) {
+			e.printStackTrace();
+		}
         return StringUtils.EMPTY;
     }
 }

@@ -16,6 +16,8 @@
 
 package com.alibaba.otter.node.etl.common.pipe.impl.rpc;
 
+import java.util.concurrent.ExecutionException;
+
 import com.alibaba.otter.node.common.communication.NodeCommmunicationClient;
 import com.alibaba.otter.node.common.config.ConfigClientService;
 import com.alibaba.otter.node.etl.common.pipe.PipeDataType;
@@ -63,7 +65,12 @@ public class RowDataRpcPipe extends AbstractRpcPipe<DbBatch, RpcPipeKey> {
     @SuppressWarnings("unused")
     // 处理rpc调用事件
     private DbBatch onGet(RpcEvent event) {
-        return cache.remove(event.getKey()); // 不建议使用remove，rpc调用容易有retry请求，导致第二次拿到的数据为null
+        try {
+			return cache.get(event.getKey());
+		} catch (ExecutionException e) {
+			e.printStackTrace();
+			return null;
+		} // 不建议使用remove，rpc调用容易有retry请求，导致第二次拿到的数据为null
     }
 
     private Long getNid() {

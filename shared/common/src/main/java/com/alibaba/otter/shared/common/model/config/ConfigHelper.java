@@ -19,7 +19,7 @@ package com.alibaba.otter.shared.common.model.config;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.oro.text.regex.MalformedPatternException;
@@ -37,8 +37,9 @@ import com.alibaba.otter.shared.common.model.config.data.DataMedia.ModeValue;
 import com.alibaba.otter.shared.common.model.config.data.DataMediaPair;
 import com.alibaba.otter.shared.common.model.config.data.DataMediaSource;
 import com.alibaba.otter.shared.common.model.config.pipeline.Pipeline;
-import com.google.common.base.Function;
-import com.google.common.collect.MapMaker;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 
 /**
  * 常用的config处理帮助类
@@ -49,18 +50,19 @@ import com.google.common.collect.MapMaker;
 public class ConfigHelper {
 
     public static final String          MODE_PATTERN = "(.*)(\\[(\\d+)\\-(\\d+)\\])(.*)"; // 匹配offer[1-128]
-    private static Map<String, Pattern> patterns     = new MapMaker().makeComputingMap(new Function<String, Pattern>() {
-
-                                                         public Pattern apply(String input) {
-                                                             PatternCompiler pc = new Perl5Compiler();
-                                                             try {
-                                                                 return pc.compile(input,
-                                                                     Perl5Compiler.CASE_INSENSITIVE_MASK
-                                                                             | Perl5Compiler.READ_ONLY_MASK);
-                                                             } catch (MalformedPatternException e) {
-                                                                 throw new ConfigException(e);
-                                                             }
-                                                         }
+    private static LoadingCache<String, Pattern> patterns     = CacheBuilder.newBuilder().maximumSize(1000)
+			.build(new CacheLoader<String, Pattern>() { 
+														@Override
+														public Pattern load(String input) throws Exception {
+															PatternCompiler pc = new Perl5Compiler();
+                                                            try {
+                                                                return pc.compile(input,
+                                                                    Perl5Compiler.CASE_INSENSITIVE_MASK
+                                                                            | Perl5Compiler.READ_ONLY_MASK);
+                                                            } catch (MalformedPatternException e) {
+                                                                throw new ConfigException(e);
+                                                            }
+														}
                                                      });
 
     /**
@@ -166,33 +168,37 @@ public class ConfigHelper {
      */
     public static ModeValue parseMode(String value) {
         PatternMatcher matcher = new Perl5Matcher();
-        if (matcher.matches(value, patterns.get(MODE_PATTERN))) {
-            MatchResult matchResult = matcher.getMatch();
-            String prefix = matchResult.group(1);
-            String startStr = matchResult.group(3);
-            String ednStr = matchResult.group(4);
-            int start = Integer.valueOf(startStr);
-            int end = Integer.valueOf(ednStr);
-            String postfix = matchResult.group(5);
+        try {
+			if (matcher.matches(value, patterns.get(MODE_PATTERN))) {
+			    MatchResult matchResult = matcher.getMatch();
+			    String prefix = matchResult.group(1);
+			    String startStr = matchResult.group(3);
+			    String ednStr = matchResult.group(4);
+			    int start = Integer.valueOf(startStr);
+			    int end = Integer.valueOf(ednStr);
+			    String postfix = matchResult.group(5);
 
-            List<String> values = new ArrayList<String>();
-            for (int i = start; i <= end; i++) {
-                StringBuilder builder = new StringBuilder(value.length());
-                String str = String.valueOf(i);
-                // 处理0001类型
-                if (startStr.length() == ednStr.length() && startStr.startsWith("0")) {
-                    str = StringUtils.leftPad(String.valueOf(i), startStr.length(), '0');
-                }
+			    List<String> values = new ArrayList<String>();
+			    for (int i = start; i <= end; i++) {
+			        StringBuilder builder = new StringBuilder(value.length());
+			        String str = String.valueOf(i);
+			        // 处理0001类型
+			        if (startStr.length() == ednStr.length() && startStr.startsWith("0")) {
+			            str = StringUtils.leftPad(String.valueOf(i), startStr.length(), '0');
+			        }
 
-                builder.append(prefix).append(str).append(postfix);
-                values.add(builder.toString());
-            }
-            return new ModeValue(Mode.MULTI, values);
-        } else if (isWildCard(value)) {// 通配符支持
-            return new ModeValue(Mode.WILDCARD, Arrays.asList(value));
-        } else {
-            return new ModeValue(Mode.SINGLE, Arrays.asList(value));
-        }
+			        builder.append(prefix).append(str).append(postfix);
+			        values.add(builder.toString());
+			    }
+			    return new ModeValue(Mode.MULTI, values);
+			} else if (isWildCard(value)) {// 通配符支持
+			    return new ModeValue(Mode.WILDCARD, Arrays.asList(value));
+			} else {
+			    return new ModeValue(Mode.SINGLE, Arrays.asList(value));
+			}
+		}  catch (ExecutionException e) {
+			return null;
+		}
     }
 
     public static String makeSQLPattern(String rawValue) {
@@ -296,7 +302,11 @@ public class ConfigHelper {
 
     private static boolean isWildCardMatch(String matchPattern, String value) {
         PatternMatcher matcher = new Perl5Matcher();
-        return matcher.matches(value, patterns.get(matchPattern));
+        try {
+			return matcher.matches(value, patterns.get(matchPattern));
+		} catch (ExecutionException e) {
+			return false;
+		}
     }
 
     public static int indexIgnoreCase(List<String> datas, String value) {

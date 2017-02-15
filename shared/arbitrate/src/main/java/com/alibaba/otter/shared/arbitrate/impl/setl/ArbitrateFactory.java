@@ -17,8 +17,7 @@
 package com.alibaba.otter.shared.arbitrate.impl.setl;
 
 import java.lang.reflect.Constructor;
-import java.util.Collection;
-import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
@@ -26,8 +25,9 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 import com.alibaba.otter.shared.arbitrate.exception.ArbitrateException;
-import com.google.common.base.Function;
-import com.google.common.collect.MapMaker;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 
 /**
  * 针对arbitrate的对象管理的工厂方法，基于pipelineId需要做对象缓存
@@ -39,12 +39,14 @@ public class ArbitrateFactory implements ApplicationContextAware {
 
     private static ApplicationContext            context = null;
     // 两层的Map接口，第一层为pipelineId，第二层为具体的资源类型class
-    private static Map<Long, Map<Class, Object>> cache   = new MapMaker().makeComputingMap(new Function<Long, Map<Class, Object>>() {
+    private static LoadingCache<Long, LoadingCache<Class, Object>> cache   =  CacheBuilder.newBuilder().maximumSize(1000)
+			.build(new CacheLoader<Long, LoadingCache<Class, Object>>() {
 
-                                                             public Map<Class, Object> apply(final Long pipelineId) {
-                                                                 return new MapMaker().makeComputingMap(new Function<Class, Object>() {
+                                                             public LoadingCache<Class, Object> load(final Long pipelineId) {
+                                                                 return  CacheBuilder.newBuilder().maximumSize(1000)
+                                                             			.build(new CacheLoader<Class, Object>() {
 
-                                                                     public Object apply(Class instanceClass) {
+                                                                     public Object load(Class instanceClass) {
                                                                          return newInstance(pipelineId, instanceClass);
                                                                      }
                                                                  });
@@ -87,7 +89,12 @@ public class ArbitrateFactory implements ApplicationContextAware {
         // }
         // return (T) obj;
 
-        return (T) cache.get(pipelineId).get(instanceClass);
+        try {
+			return (T) cache.get(pipelineId).get(instanceClass);
+		} catch (ExecutionException e) {
+			e.printStackTrace();
+			return null;
+		}
     }
 
     public static void autowire(Object obj) {
@@ -98,7 +105,7 @@ public class ArbitrateFactory implements ApplicationContextAware {
     }
 
     public static void destory() {
-        for (Long pipelineId : cache.keySet()) {
+        for (Long pipelineId : cache.asMap().keySet()) {
             destory(pipelineId);
         }
     }
@@ -109,16 +116,31 @@ public class ArbitrateFactory implements ApplicationContextAware {
      * @param pipelineId
      */
     public static void destory(Long pipelineId) {
-        Map<Class, Object> resources = cache.remove(pipelineId);
-        if (resources != null) {
-            Collection collection = resources.values();
-            for (Object obj : collection) {
-                if (obj instanceof ArbitrateLifeCycle) {
-                    ArbitrateLifeCycle lifeCycle = (ArbitrateLifeCycle) obj;
-                    lifeCycle.destory();// 调用销毁方法
-                }
-            }
-        }
+    	try {
+			LoadingCache<Class, Object> resources = cache.get(pipelineId);
+			if (resources != null) {
+				for (Object obj : resources.asMap().values()) {
+					 if (obj instanceof ArbitrateLifeCycle) {
+		                    ArbitrateLifeCycle lifeCycle = (ArbitrateLifeCycle) obj;
+		                    lifeCycle.destory();// 调用销毁方法
+		                }
+				}
+				resources.invalidateAll();
+				resources.cleanUp();
+			}
+		} catch (ExecutionException e1) {
+			e1.printStackTrace();
+		}
+//    	LoadingCache<Class, Object> resources = cache.remove(pipelineId);
+//        if (resources != null) {
+//            Collection collection = resources.asMap().values();
+//            for (Object obj : collection) {
+//                if (obj instanceof ArbitrateLifeCycle) {
+//                    ArbitrateLifeCycle lifeCycle = (ArbitrateLifeCycle) obj;
+//                    lifeCycle.destory();// 调用销毁方法
+//                }
+//            }
+//        }
     }
 
     /**
@@ -127,14 +149,26 @@ public class ArbitrateFactory implements ApplicationContextAware {
      * @param pipelineId
      */
     public static <T extends ArbitrateLifeCycle> void destory(Long pipelineId, Class<T> instanceClass) {
-        Map<Class, Object> resources = cache.get(pipelineId);
-        if (resources != null) {
-            Object obj = resources.remove(instanceClass);
-            if (obj instanceof ArbitrateLifeCycle) {
-                ArbitrateLifeCycle lifeCycle = (ArbitrateLifeCycle) obj;
-                lifeCycle.destory();// 调用销毁方法
-            }
-        }
+    	try {
+			LoadingCache<Class, Object> resources = cache.get(pipelineId);
+			if (resources != null) {
+				Object obj = resources.get(instanceClass);
+				if (obj instanceof ArbitrateLifeCycle) {
+					ArbitrateLifeCycle lifeCycle = (ArbitrateLifeCycle) obj;
+					lifeCycle.destory();// 调用销毁方法
+				}
+			}
+		} catch (ExecutionException e) {
+			e.printStackTrace();
+		}
+//    	LoadingCache<Class, Object> resources = cache.get(pipelineId);
+//        if (resources != null) {
+//            Object obj = resources.remove(instanceClass);
+//            if (obj instanceof ArbitrateLifeCycle) {
+//                ArbitrateLifeCycle lifeCycle = (ArbitrateLifeCycle) obj;
+//                lifeCycle.destory();// 调用销毁方法
+//            }
+//        }
     }
 
     // ==================== helper method =======================

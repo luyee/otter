@@ -16,13 +16,14 @@
 
 package com.alibaba.otter.node.etl.common.jmx;
 
-import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.alibaba.otter.node.etl.common.jmx.StageAggregation.AggregationItem;
 import com.alibaba.otter.shared.common.model.config.enums.StageType;
-import com.google.common.base.Function;
-import com.google.common.collect.MapMaker;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 
 /**
  * 统计每个stage的运行信息
@@ -32,41 +33,52 @@ import com.google.common.collect.MapMaker;
  */
 public class StageAggregationCollector {
 
-    private Map<Long, Map<StageType, StageAggregation>> collector;
-    private AtomicBoolean                               profiling = new AtomicBoolean(true);
+	private LoadingCache<Long, LoadingCache<StageType, StageAggregation>> collector;
+	private AtomicBoolean profiling = new AtomicBoolean(true);
 
-    public StageAggregationCollector(){
-        this(1024);
-    }
+	public StageAggregationCollector() {
+		this(1024);
+	}
 
-    public StageAggregationCollector(final int bufferSize){
-        collector = new MapMaker().makeComputingMap(new Function<Long, Map<StageType, StageAggregation>>() {
+	public StageAggregationCollector(final int bufferSize) {
+		collector = CacheBuilder.newBuilder().maximumSize(1000)
+				.build(new CacheLoader<Long, LoadingCache<StageType, StageAggregation>>() {
 
-            public Map<StageType, StageAggregation> apply(Long input) {
-                return new MapMaker().makeComputingMap(new Function<StageType, StageAggregation>() {
+					public LoadingCache<StageType, StageAggregation> load(Long input) {
+						return CacheBuilder.newBuilder().maximumSize(1000)
+								.build(new CacheLoader<StageType, StageAggregation>() {
 
-                    public StageAggregation apply(StageType input) {
-                        return new StageAggregation(bufferSize);
-                    }
-                });
-            }
-        });
-    }
+									public StageAggregation load(StageType input) {
+										return new StageAggregation(bufferSize);
+									}
+								});
+					}
+				});
+	}
 
-    public void push(Long pipelineId, StageType stage, AggregationItem aggregationItem) {
-        collector.get(pipelineId).get(stage).push(aggregationItem);
-    }
+	public void push(Long pipelineId, StageType stage, AggregationItem aggregationItem) {
+		try {
+			collector.get(pipelineId).get(stage).push(aggregationItem);
+		} catch (ExecutionException e) {
+			e.printStackTrace();
+		}
+	}
 
-    public String histogram(Long pipelineId, StageType stage) {
-        return collector.get(pipelineId).get(stage).histogram();
-    }
+	public String histogram(Long pipelineId, StageType stage) {
+		try {
+			return collector.get(pipelineId).get(stage).histogram();
+		} catch (ExecutionException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
 
-    public boolean isProfiling() {
-        return profiling.get();
-    }
+	public boolean isProfiling() {
+		return profiling.get();
+	}
 
-    public void setProfiling(boolean profiling) {
-        this.profiling.set(profiling);
-    }
+	public void setProfiling(boolean profiling) {
+		this.profiling.set(profiling);
+	}
 
 }
