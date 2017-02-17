@@ -118,11 +118,9 @@
 				<beans:property name="urlProtected">
 					<beans:value>
 						/
-						/dwr/.*
 						/js/.*
 						/css/.*
 						/images/.*
-						/monitor/.*
 						/.*\.css
 						/.*\.png
 						/.*\.js
@@ -131,6 +129,23 @@
 						/.*Error\.htm
 						/.*\_error\.htm
 						/.*forbidden\.htm
+					</beans:value>
+				</beans:property>
+				<beans:property name="actionProtected">
+					<beans:value>
+						userAction|login
+						userAction|logout
+					</beans:value>
+				</beans:property>
+			</beans:bean>
+		</beans:property>
+		<beans:property name="operator">
+			<beans:bean
+				class="com.alibaba.otter.manager.web.webx.valve.auth.AuthorizeProtected">
+				<beans:property name="urlProtected">
+					<beans:value>
+						/dwr/.*
+						/monitor/.*
 						/.*check.*\.htm
 						/.*conflictStatList\.htm
 						/.*conflict_stat_list\.htm
@@ -154,24 +169,7 @@
 				</beans:property>
 				<beans:property name="actionProtected">
 					<beans:value>
-						userAction|login
-						userAction|logout
 						.*Action|search
-					</beans:value>
-				</beans:property>
-			</beans:bean>
-		</beans:property>
-		<beans:property name="operator">
-			<beans:bean
-				class="com.alibaba.otter.manager.web.webx.valve.auth.AuthorizeProtected">
-				<beans:property name="urlProtected">
-					<beans:value>
-
-					</beans:value>
-				</beans:property>
-				<beans:property name="actionProtected">
-					<beans:value>
-
 					</beans:value>
 				</beans:property>
 			</beans:bean>
