@@ -24,6 +24,15 @@ public enum DataMediaType {
     MYSQL,
     /** oracle DB */
     ORACLE,
+    /** elsaticsearch  */
+    ELASTICSEARCH,
+    /** KAFKA DB */
+    KAFKA,
+    /** HBASE DB */
+    HBASE,
+    /** CASSANDRA DB */
+    CASSANDRA,
+	GREENPLUM,
     /** cobar */
     COBAR,
     /** tddl */
@@ -34,6 +43,7 @@ public enum DataMediaType {
     MQ,
     /** napoli */
     NAPOLI,
+    HDFS,
     /** diamond push for us */
     DIAMOND_PUSH;
 
@@ -43,6 +53,26 @@ public enum DataMediaType {
 
     public boolean isOracle() {
         return this.equals(DataMediaType.ORACLE);
+    }
+    
+    public boolean isKafka() {
+        return this.equals(DataMediaType.KAFKA);
+    }
+    
+    public boolean isHbase() {
+        return this.equals(DataMediaType.HBASE);
+    }
+    
+    public boolean isElasticSearch() {
+        return this.equals(DataMediaType.ELASTICSEARCH);
+    }
+    
+    public boolean isCassandra() {
+        return this.equals(DataMediaType.CASSANDRA);
+    }
+    
+    public boolean isGreenplum() {
+        return this.equals(DataMediaType.GREENPLUM);
     }
 
     public boolean isTddl() {
@@ -68,4 +98,8 @@ public enum DataMediaType {
     public boolean isDiamondPush() {
         return this.equals(DataMediaType.DIAMOND_PUSH);
     }
+
+	public boolean isHDFSArvo() {
+		return this.equals(DataMediaType.HDFS);
+	}
 }

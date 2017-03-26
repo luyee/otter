@@ -77,12 +77,6 @@ public class DbMediaSource extends DataMediaSource {
         this.driver = driver;
     }
 
-    public Properties getProperties() {
-        return properties;
-    }
-
-    public void setProperties(Properties properties) {
-        this.properties = properties;
-    }
+   
 
 }

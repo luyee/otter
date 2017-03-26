@@ -53,7 +53,10 @@ public class EventData implements ObjectData, Serializable {
      * 变更数据的业务时间.
      */
     private long              executeTime;
-
+    /**
+	 * 数据写入时间
+	 */
+	private long loadDataTime;
     /**
      * 变更前的主键值,如果是insert/delete变更前和变更后的主键值是一样的.
      */
@@ -115,8 +118,24 @@ public class EventData implements ObjectData, Serializable {
      * 生成sql是否忽略schema,比如针对tddl/drds,需要忽略schema
      */
     private boolean           withoutSchema    = false;
+    private String exeResult;
 
-    public long getTableId() {
+	public String getExeResult() {
+		return exeResult;
+	}
+
+	public void setExeResult(String exeResult) {
+		this.exeResult = exeResult;
+	}
+    public long getLoadDataTime() {
+		return loadDataTime;
+	}
+
+	public void setLoadDataTime(long loadDataTime) {
+		this.loadDataTime = loadDataTime;
+	}
+
+	public long getTableId() {
         return tableId;
     }
 

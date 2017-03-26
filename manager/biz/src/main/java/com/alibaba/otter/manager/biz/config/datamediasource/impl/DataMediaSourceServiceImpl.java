@@ -31,7 +31,12 @@ import com.alibaba.otter.manager.biz.config.datamediasource.DataMediaSourceServi
 import com.alibaba.otter.manager.biz.config.datamediasource.dal.DataMediaSourceDAO;
 import com.alibaba.otter.manager.biz.config.datamediasource.dal.dataobject.DataMediaSourceDO;
 import com.alibaba.otter.shared.common.model.config.data.DataMediaSource;
+import com.alibaba.otter.shared.common.model.config.data.cassandra.CassandraMediaSource;
 import com.alibaba.otter.shared.common.model.config.data.db.DbMediaSource;
+import com.alibaba.otter.shared.common.model.config.data.elasticsearch.ElasticSearchMediaSource;
+import com.alibaba.otter.shared.common.model.config.data.hbase.HBaseMediaSource;
+import com.alibaba.otter.shared.common.model.config.data.hdfs.HDFSMediaSource;
+import com.alibaba.otter.shared.common.model.config.data.kafka.KafkaMediaSource;
 import com.alibaba.otter.shared.common.model.config.data.mq.MqMediaSource;
 import com.alibaba.otter.shared.common.utils.JsonUtils;
 
@@ -194,7 +199,17 @@ public class DataMediaSourceServiceImpl implements DataMediaSourceService {
             dataMediaSourceDo.setType(dataMediaSource.getType());
             if (dataMediaSource instanceof DbMediaSource) {
                 dataMediaSourceDo.setProperties(JsonUtils.marshalToString((DbMediaSource) dataMediaSource));
-            } else if (dataMediaSource instanceof MqMediaSource) {
+            }else if (dataMediaSource instanceof KafkaMediaSource) {
+                dataMediaSourceDo.setProperties(JsonUtils.marshalToString((KafkaMediaSource) dataMediaSource));
+            }else if (dataMediaSource instanceof HBaseMediaSource) {
+                dataMediaSourceDo.setProperties(JsonUtils.marshalToString((HBaseMediaSource) dataMediaSource));
+            }else if (dataMediaSource instanceof ElasticSearchMediaSource) {
+                dataMediaSourceDo.setProperties(JsonUtils.marshalToString((ElasticSearchMediaSource) dataMediaSource));
+            }else if (dataMediaSource instanceof HDFSMediaSource) {
+                dataMediaSourceDo.setProperties(JsonUtils.marshalToString((HDFSMediaSource) dataMediaSource));
+            }else if (dataMediaSource instanceof CassandraMediaSource) {
+                dataMediaSourceDo.setProperties(JsonUtils.marshalToString((CassandraMediaSource) dataMediaSource));
+            }  else if (dataMediaSource instanceof MqMediaSource) {
                 dataMediaSourceDo.setProperties(JsonUtils.marshalToString((MqMediaSource) dataMediaSource));
             }
 
@@ -218,8 +233,18 @@ public class DataMediaSourceServiceImpl implements DataMediaSourceService {
 
         DataMediaSource dataMediaSource = new DbMediaSource();
         try {
-            if (dataMediaSourceDo.getType().isMysql() || dataMediaSourceDo.getType().isOracle()) {
+            if (dataMediaSourceDo.getType().isMysql() || dataMediaSourceDo.getType().isOracle() || dataMediaSourceDo.getType().isGreenplum()) {
                 dataMediaSource = JsonUtils.unmarshalFromString(dataMediaSourceDo.getProperties(), DbMediaSource.class);
+            } else if (dataMediaSourceDo.getType().isCassandra()) {
+                dataMediaSource = JsonUtils.unmarshalFromString(dataMediaSourceDo.getProperties(), CassandraMediaSource.class);
+            } else if (dataMediaSourceDo.getType().isElasticSearch()) {
+                dataMediaSource = JsonUtils.unmarshalFromString(dataMediaSourceDo.getProperties(), ElasticSearchMediaSource.class);
+            } else if (dataMediaSourceDo.getType().isHbase()) {
+                dataMediaSource = JsonUtils.unmarshalFromString(dataMediaSourceDo.getProperties(), HBaseMediaSource.class);
+            } else if (dataMediaSourceDo.getType().isElasticSearch()) {
+                dataMediaSource = JsonUtils.unmarshalFromString(dataMediaSourceDo.getProperties(), ElasticSearchMediaSource.class);
+            } else if (dataMediaSourceDo.getType().isKafka()) {
+                dataMediaSource = JsonUtils.unmarshalFromString(dataMediaSourceDo.getProperties(), KafkaMediaSource.class);
             } else if (dataMediaSourceDo.getType().isNapoli() || dataMediaSourceDo.getType().isMq()) {
                 dataMediaSource = JsonUtils.unmarshalFromString(dataMediaSourceDo.getProperties(), MqMediaSource.class);
             }

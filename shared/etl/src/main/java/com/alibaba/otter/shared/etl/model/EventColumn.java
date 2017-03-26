@@ -56,6 +56,15 @@ public class EventColumn implements Serializable {
      * </pre>
      */
     private boolean           isUpdate         = true;
+    
+    private String pkFunctionName="ori";//主键key生成函数
+    public String getPkFunctionName() {
+		return pkFunctionName;
+	}
+
+	public void setPkFunctionName(String pkFunctionName) {
+		this.pkFunctionName = pkFunctionName;
+	}
 
     public int getColumnType() {
         return columnType;

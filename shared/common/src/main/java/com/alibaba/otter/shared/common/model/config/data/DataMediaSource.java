@@ -18,9 +18,13 @@ package com.alibaba.otter.shared.common.model.config.data;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.commons.lang.builder.ToStringBuilder;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.TypeReference;
 import com.alibaba.otter.shared.common.utils.OtterToStringStyle;
 
 /**
@@ -37,6 +41,9 @@ public class DataMediaSource implements Serializable {
     private String            encode;
     private Date              gmtCreate;
     private Date              gmtModified;
+    
+	private Map<String,String> properties=new HashMap<String,String>();
+	private String propertiesStr;
 
     public Long getId() {
         return id;
@@ -120,5 +127,31 @@ public class DataMediaSource implements Serializable {
     public String toString() {
         return ToStringBuilder.reflectionToString(this, OtterToStringStyle.DEFAULT_STYLE);
     }
+
+	public Map<String,String> getProperties() {
+		return properties;
+	}
+
+	
+	public void putProperty(String key,String value){
+		this.properties.put(key, value);
+	}
+	
+	public String getProperty(String key){
+		return this.properties.get(key);
+	}
+
+	public String getPropertiesStr() {
+		return propertiesStr;
+	}
+
+	public void setPropertiesStr(String propertiesStr) {
+		this.propertiesStr = propertiesStr;
+		this.properties=JSON.parseObject(propertiesStr, new TypeReference<Map<String,String>>(){});
+	}
+
+	public void setProperties(Map<String, String> properties) {
+		this.properties = properties;
+	}
 
 }

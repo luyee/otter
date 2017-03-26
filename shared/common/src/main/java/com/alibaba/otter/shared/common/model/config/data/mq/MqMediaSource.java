@@ -19,31 +19,40 @@ package com.alibaba.otter.shared.common.model.config.data.mq;
 import com.alibaba.otter.shared.common.model.config.data.DataMediaSource;
 
 /**
- * NapoliConnector对象的实现
+ * MetaConnector对象的实现
  * 
  * @author simon 2012-6-19 下午10:49:25
  * @version 4.1.0
  */
 public class MqMediaSource extends DataMediaSource {
 
-    private static final long serialVersionUID = -1699317916850638142L;
-    private String            url;
-    private String            storePath;
+	private static final long serialVersionUID = -1699317916850638142L;
+	private String producerGroupName;
+	private String namesrvAddr;
+	private String instanceName;
 
-    public String getUrl() {
-        return url;
-    }
+	public String getProducerGroupName() {
+		return producerGroupName;
+	}
 
-    public void setUrl(String url) {
-        this.url = url;
-    }
+	public void setProducerGroupName(String producerGroupName) {
+		this.producerGroupName = producerGroupName;
+	}
 
-    public String getStorePath() {
-        return storePath;
-    }
+	public String getNamesrvAddr() {
+		return namesrvAddr;
+	}
 
-    public void setStorePath(String storePath) {
-        this.storePath = storePath;
-    }
+	public void setNamesrvAddr(String namesrvAddr) {
+		this.namesrvAddr = namesrvAddr;
+	}
+
+	public String getInstanceName() {
+		return instanceName;
+	}
+
+	public void setInstanceName(String instanceName) {
+		this.instanceName = instanceName;
+	}
 
 }

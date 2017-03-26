@@ -41,6 +41,11 @@ $control.setTemplate("home:navigation.vm")
             <select id="sourceType" name="$dataMediaSourceGroup.type.key" onchange="changeform();" >
             <option value="MYSQL">MySQL</option>
             <option value="ORACLE">Oracle</option>
+            <option value="KAFKA">KAFKA</option>
+            <option value="HBASE">HBASE</option>
+            <option value="ELASTICSEARCH">ELASTICSEARCH</option>
+            <option value="CASSANDRA">CASSANDRA</option>
+            <option value="GREENPLUM">GREENPLUM</option>
 			</select><span class="red">*</span>
         </td>
       </tr>
@@ -100,6 +105,11 @@ $control.setTemplate("home:navigation.vm")
         <td>
 			mysql例子: jdbc:mysql://10.20.144.15:3306<br/>
 			oracle例子 : jdbc:oracle:thin:@10.20.144.29:1521:OINTEST<br/>
+			kafka例子 : 172.16.28.22:9092;172.16.28.23:9092|172.16.28.22:2181;172.16.28.23:2181<br/>
+			HBASE例子 :/home/da/hbase-site.xml<br/>
+			ELASTICSEARCH例子 :test74:9300;test75:9300;test76:9300||clustername||indexname<br/>
+			CASSANDRA例子 :test75:2688;test76:2688<br/>
+			GreenPLUM例子:
 			media例子 : jdbc:mysql://groupKey=key (更改 key)
 		</td>
       </tr>

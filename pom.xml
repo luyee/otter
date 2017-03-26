@@ -169,7 +169,7 @@
 			<dependency>
 				<groupId>com.alibaba</groupId>
 				<artifactId>fastjson</artifactId>
-				<version>1.1.35</version>
+				<version>1.1.32</version>
 			</dependency>
 			<dependency>
 				<groupId>com.google.guava</groupId>
@@ -219,6 +219,11 @@
 				<artifactId>elasticsearch</artifactId>
 				<version>2.3.3</version>
 			</dependency>
+			<dependency>
+  <groupId>com.alibaba.rocketmq</groupId>
+  <artifactId>rocketmq-client</artifactId>
+  <version>3.6.2.Final</version>
+</dependency>
 			<dependency>
 				<groupId>org.elasticsearch.plugin</groupId>
 				<artifactId>shield</artifactId>
@@ -271,9 +276,10 @@
 			<!-- Kafka -->
 			<dependency>
 				<groupId>org.apache.kafka</groupId>
-				<artifactId>kafka_2.10</artifactId>
-				<version>0.8.2.1</version>
+				<artifactId>kafka_2.11</artifactId>
+				<version>0.10.1.1</version>
 			</dependency>
+			
 			<!-- Cassandra -->
 			<dependency>
 				<groupId>com.datastax.cassandra</groupId>

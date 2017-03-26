@@ -48,16 +48,19 @@ public interface DbDialect {
     public boolean isEmptyStringNulled();
 
     public boolean isSupportMergeSql();
-
+/**
+ * 是否分库分表的TDDL
+ * @return
+ */
     public boolean isDRDS();
 
     public LobHandler getLobHandler();
 
-    public JdbcTemplate getJdbcTemplate();
+    public <T> T getJdbcTemplate();
 
     public TransactionTemplate getTransactionTemplate();
 
-    public SqlTemplate getSqlTemplate();
+    public <T> T getSqlTemplate();
 
     public Table findTable(String schema, String table);
 

@@ -19,7 +19,7 @@ package com.alibaba.otter.shared.common.model.config.data.mq;
 import com.alibaba.otter.shared.common.model.config.data.DataMedia;
 
 /**
- * NapoliSender对象的实现
+ * MetaQ 表对象的实现
  * 
  * @author simon 2012-6-19 下午10:49:08
  * @version 4.1.0
