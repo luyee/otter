@@ -57,6 +57,7 @@ import org.springframework.util.CollectionUtils;
 import com.alibaba.otter.node.common.config.ConfigClientService;
 import com.alibaba.otter.node.etl.common.db.dialect.DbDialect;
 import com.alibaba.otter.node.etl.common.db.dialect.DbDialectFactory;
+import com.alibaba.otter.node.etl.common.db.dialect.NoSqlTemplate;
 import com.alibaba.otter.node.etl.common.db.dialect.mysql.MysqlDialect;
 import com.alibaba.otter.node.etl.common.db.utils.SqlUtils;
 import com.alibaba.otter.node.etl.load.exception.LoadException;
@@ -354,24 +355,37 @@ public class DbLoadAction implements InitializingBean, DisposableBean {
                 (DbMediaSource) dataMedia.getSource());
             Boolean skipDdlException = context.getPipeline().getParameters().getSkipDdlException();
             try {
-                Boolean result = dbDialect.getJdbcTemplate().execute(new StatementCallback<Boolean>() {
-
-                    public Boolean doInStatement(Statement stmt) throws SQLException, DataAccessException {
-                        Boolean result = false;
-                        if (dbDialect instanceof MysqlDialect && StringUtils.isNotEmpty(data.getDdlSchemaName())) {
-                            // 如果mysql，执行ddl时，切换到在源库执行的schema上
-                            result &= stmt.execute("use " + data.getDdlSchemaName());
-                        }
-                        result &= stmt.execute(data.getSql());
-                        return result;
-                    }
-                });
-                if (result) {
-                    context.getProcessedDatas().add(data); // 记录为成功处理的sql
-                } else {
-                    context.getFailedDatas().add(data);
-                }
-
+            	if (dbDialect.isNoSqlDB()) {
+					NoSqlTemplate nosqlTemp=(NoSqlTemplate)dbDialect.getSqlTemplate();
+					if (data.getEventType().isCreate()){
+						nosqlTemp.createTable(data);
+					}else if (data.getEventType().isAlter()){
+						nosqlTemp.alterTable(data);
+					}else if (data.getEventType().isErase()){
+						nosqlTemp.eraseTable(data);
+					}else if (data.getEventType().isTruncate()){
+						nosqlTemp.truncateTable(data);
+					}else if (data.getEventType().isRename()){
+						nosqlTemp.renameTable(data);
+					}
+				} else {// 关系数据库
+					Boolean result = ((JdbcTemplate)dbDialect.getJdbcTemplate()).execute(new StatementCallback<Boolean>() {
+	                    public Boolean doInStatement(Statement stmt) throws SQLException, DataAccessException {
+	                        Boolean result = false;
+	                        if (dbDialect instanceof MysqlDialect && StringUtils.isNotEmpty(data.getDdlSchemaName())) {
+	                            // 如果mysql，执行ddl时，切换到在源库执行的schema上
+	                            result &= stmt.execute("use " + data.getDdlSchemaName());
+	                        }
+	                        result &= stmt.execute(data.getSql());
+	                        return result;
+	                    }
+	                });
+	                if (result) {
+	                    context.getProcessedDatas().add(data); // 记录为成功处理的sql
+	                } else {
+	                    context.getFailedDatas().add(data);
+	                }
+				}
             } catch (Throwable e) {
                 if (skipDdlException) {
                     // do skip
@@ -520,14 +534,14 @@ public class DbLoadAction implements InitializingBean, DisposableBean {
         private List<EventData> allProcesedDatas = new ArrayList<EventData>();
         private List<EventData> processedDatas = new ArrayList<EventData>();
         private List<EventData> failedDatas = new ArrayList<EventData>();
-
+        DataMedia dataMedia;
         public DbLoadWorker(DbLoadContext context, List<EventData> datas, boolean canBatch){
             this.context = context;
             this.datas = datas;
             this.canBatch = canBatch;
 
             EventData data = datas.get(0); // eventData为同一数据库的记录，只取第一条即可
-            DataMedia dataMedia = ConfigHelper.findDataMedia(context.getPipeline(), data.getTableId());
+             dataMedia = ConfigHelper.findDataMedia(context.getPipeline(), data.getTableId());
             dbDialect = dbDialectFactory.getDbDialect(context.getIdentity().getPipelineId(),
                 (DbMediaSource) dataMedia.getSource());
 
@@ -570,6 +584,30 @@ public class DbLoadAction implements InitializingBean, DisposableBean {
                             failedDatas.addAll(splitDatas); // 先添加为出错记录，可能获取lob,datasource会出错
                         }
 
+                        if (dbDialect.isNoSqlDB()) {
+							NoSqlTemplate nosqltemplate = (NoSqlTemplate) dbDialect.getSqlTemplate();
+							failedDatas.clear(); // 先清理
+							processedDatas.clear();
+							if ((useBatch && canBatch)|| dataMedia.getSource().getType().isElasticSearch()) {
+								nosqltemplate.batchEventDatas(splitDatas);
+								// 更新统计信息
+								for (int i = 0; i < splitDatas.size(); i++) {
+									processStat(splitDatas.get(i));
+								}
+							} else {
+								for (EventData event : splitDatas) {
+									if (event.getEventType().isDelete()) {// 删除
+										nosqltemplate.deleteEventData(event);
+									} else if (event.getEventType().isUpdate()) {
+										nosqltemplate.updateEventData(event);
+									} else if (event.getEventType().isInsert()) {
+										nosqltemplate.insertEventData(event);
+									}
+									processStat(event);
+								}
+							}
+							
+						} else {
                         final LobCreator lobCreator = dbDialect.getLobHandler().getLobCreator();
                         if (useBatch && canBatch) {
                             // 处理batch
@@ -634,7 +672,7 @@ public class DbLoadAction implements InitializingBean, DisposableBean {
                             // 更新统计信息
                             processStat(data, affect, false);
                         }
-
+						}
                         error = null;
                         exeResult = ExecuteResult.SUCCESS;
                     } catch (DeadlockLoserDataAccessException ex) {
@@ -808,6 +846,15 @@ public class DbLoadAction implements InitializingBean, DisposableBean {
                 }
             }
         }
+        
+        private void processStat(EventData data) {
+			if (StringUtils.startsWithIgnoreCase(data.getExeResult(),"失败")) {
+				failedDatas.add(data); // 记录到错误的临时队列，进行重试处理
+			} else {
+				processedDatas.add(data); // 记录到成功的临时队列，commit也可能会失败。所以这记录也可能需要进行重试
+				DbLoadAction.this.processStat(data, context);
+			}
+		}
 
         private void processStat(EventData data, int affect, boolean batch) {
             if (batch && (affect < 1 && affect != Statement.SUCCESS_NO_INFO)) {

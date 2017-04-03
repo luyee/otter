@@ -120,6 +120,10 @@ public abstract class AbstractDbDialect implements DbDialect {
 	public Table findTable(String schema, String table) {
 		return findTable(schema, table, true);
 	}
+	
+	public boolean isNoSqlDB(){
+		return false;
+	}
 
 	public void reloadTable(String schema, String table) {
 		if (StringUtils.isNotEmpty(table)) {

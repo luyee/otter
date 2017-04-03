@@ -32,6 +32,8 @@ public interface DbDialect {
     public String getName();
 
     public String getVersion();
+    
+    public boolean isNoSqlDB();
 
     public int getMajorVersion();
 

@@ -46,7 +46,9 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
+import org.springframework.jdbc.core.JdbcTemplate;
 
+import com.alibaba.otter.node.etl.common.db.dialect.SqlTemplate;
 import com.alibaba.otter.node.etl.OtterConstants;
 import com.alibaba.otter.node.etl.common.db.dialect.DbDialect;
 import com.alibaba.otter.node.etl.common.db.dialect.oracle.OracleDialect;
@@ -440,7 +442,7 @@ public class DatabaseExtractor extends AbstractExtractor<DbBatch> implements Ini
 
         private List<String> select(DbDialect dbDialect, String schemaName, String tableName, TableData keyTableData,
                                     TableData columnTableData) throws InterruptedException {
-            String selectSql = dbDialect.getSqlTemplate().getSelectSql(schemaName,
+            String selectSql = ((SqlTemplate)dbDialect.getSqlTemplate()).getSelectSql(schemaName,
                 tableName,
                 keyTableData.columnNames,
                 columnTableData.columnNames);
@@ -451,7 +453,7 @@ public class DatabaseExtractor extends AbstractExtractor<DbBatch> implements Ini
                 }
 
                 try {
-                    List<List<String>> result = dbDialect.getJdbcTemplate().query(selectSql,
+                    List<List<String>> result =((JdbcTemplate) dbDialect.getJdbcTemplate()).query(selectSql,
                         keyTableData.columnValues,
                         keyTableData.columnTypes,
                         new RowDataMapper(columnTableData.columnTypes));

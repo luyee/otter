@@ -145,8 +145,8 @@ public abstract class AbstractOperationInterceptor extends AbstractLoadIntercept
         String markTableColumn = context.getPipeline().getParameters().getSystemMarkTableColumn();
         synchronized (dialect.getJdbcTemplate()) {
             if (tableCheckStatus.contains(dialect.getJdbcTemplate()) == false) {
-                init(dialect.getJdbcTemplate(), markTableName, markTableColumn);
-                tableCheckStatus.add(dialect.getJdbcTemplate());
+                init((JdbcTemplate) dialect.getJdbcTemplate(), markTableName, markTableColumn);
+                tableCheckStatus.add((JdbcTemplate)dialect.getJdbcTemplate());
             }
         }
 
@@ -158,13 +158,13 @@ public abstract class AbstractOperationInterceptor extends AbstractLoadIntercept
             if (hint != null) {
                 esql = hint + esql;
             }
-            affectedCount = dialect.getJdbcTemplate().update(esql, new Object[] { threadId, channel.getId(), info });
+            affectedCount = ((JdbcTemplate) dialect.getJdbcTemplate()).update(esql, new Object[] { threadId, channel.getId(), info });
         } else {
             String esql = MessageFormat.format(sql, new Object[] { markTableName, markTableColumn });
             if (hint != null) {
                 esql = hint + esql;
             }
-            affectedCount = dialect.getJdbcTemplate().update(esql, new Object[] { threadId, channel.getId() });
+            affectedCount = ((JdbcTemplate) dialect.getJdbcTemplate()).update(esql, new Object[] { threadId, channel.getId() });
         }
 
         if (affectedCount <= 0) {
