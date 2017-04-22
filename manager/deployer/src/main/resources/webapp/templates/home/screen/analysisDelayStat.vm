@@ -23,16 +23,23 @@ $control.setTemplate("home:navigation.vm")
 $(function () { 
 	var number;
 	var time;
+	var maxTime;
+	var minTime;
 	var create;
 	var flotTime=[];
+	var flotMaxTime=[];
+	var flotMinTime=[];
 	#foreach ($key in $delayStatInfos.keySet())
 		time=$delayStatInfos.get($key).avgDelayTime;
+		maxTime=$delayStatInfos.get($key).avgMaxDelayTime;
+		minTime=$delayStatInfos.get($key).avgMinDelayTime;
 		create=$key;
 		flotTime.push([create,time]);
+		flotMaxTime.push([create,maxTime]);
+		flotMinTime.push([create,minTime]);
 	#end
-	
 				
-	createDelayStatFlash(flotTime);
+	createDelayStatFlash(flotTime,flotMaxTime,flotMinTime);
 				
 				
 	function showTooltip(x, y, contents) {

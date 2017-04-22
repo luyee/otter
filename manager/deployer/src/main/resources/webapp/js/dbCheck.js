@@ -4,7 +4,8 @@ function check() {
     var sourcePassword = document.getElementById('sourcePassword').value;
     var sourceEncode = document.getElementById('sourceEncode').value;
     var sourceType = document.getElementById('sourceType').value;
-    Hello.check(sourceUrl, sourceUserName, sourcePassword, sourceEncode, sourceType, callback);  
+    var sourceName=document.getElementById('sourceName').value;
+    Hello.check(sourceName,sourceUrl, sourceUserName, sourcePassword, sourceEncode, sourceType, callback);  
 }  
 
 function checkMap() {  

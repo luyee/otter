@@ -16,6 +16,8 @@
 
 package com.alibaba.otter.manager.biz.utils;
 
+import java.util.concurrent.ExecutionException;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.oro.text.regex.MalformedPatternException;
 import org.apache.oro.text.regex.Pattern;
@@ -35,35 +37,49 @@ import com.google.common.cache.LoadingCache;
  */
 public class RegexUtils {
 
-	private static LoadingCache<String, Pattern> patterns = null;
+    private static LoadingCache<String, Pattern> patterns = null;
 
-	static {
-		patterns = CacheBuilder.newBuilder().maximumSize(1000).softValues().build(new CacheLoader<String, Pattern>() {
+    static {
+        patterns =CacheBuilder.newBuilder()
+                .maximumSize(1000)    // 最多可以缓存1000个key
+                .build(new CacheLoader<String, Pattern>(){ 
+    				@Override
+    				public Pattern load(String pattern) throws Exception {
+    					 try {
+    		                    PatternCompiler pc = new Perl5Compiler();
+    		                    return pc.compile(pattern, Perl5Compiler.CASE_INSENSITIVE_MASK | Perl5Compiler.READ_ONLY_MASK);
+    		                } catch (MalformedPatternException e) {
+    		                    throw new ManagerException(e);
+    		                }
+    				}
+    			}); 
+        
+//        		new MapMaker().softValues().makeComputingMap(new Function<String, Pattern>() {
+//
+//            public Pattern apply(String pattern) {
+//                try {
+//                    PatternCompiler pc = new Perl5Compiler();
+//                    return pc.compile(pattern, Perl5Compiler.CASE_INSENSITIVE_MASK | Perl5Compiler.READ_ONLY_MASK);
+//                } catch (MalformedPatternException e) {
+//                    throw new ManagerException(e);
+//                }
+//            }
+//        });
+    }
 
-			public Pattern load(String pattern) {
-				try {
-					PatternCompiler pc = new Perl5Compiler();
-					return pc.compile(pattern, Perl5Compiler.CASE_INSENSITIVE_MASK | Perl5Compiler.READ_ONLY_MASK);
-				} catch (MalformedPatternException e) {
-					throw new ManagerException(e);
-				}
-			}
-		});
-	}
+    public static String findFirst(String originalStr, String regex) {
+        if (StringUtils.isBlank(originalStr) || StringUtils.isBlank(regex)) {
+            return StringUtils.EMPTY;
+        }
 
-	public static String findFirst(String originalStr, String regex) {
-		if (StringUtils.isBlank(originalStr) || StringUtils.isBlank(regex)) {
-			return StringUtils.EMPTY;
-		}
-
-		PatternMatcher matcher = new Perl5Matcher();
-		try {
+        PatternMatcher matcher = new Perl5Matcher();
+        try {
 			if (matcher.contains(originalStr, patterns.get(regex))) {
-				return StringUtils.trimToEmpty(matcher.getMatch().group(0));
+			    return StringUtils.trimToEmpty(matcher.getMatch().group(0));
 			}
-		} catch (Exception e) {
+		} catch (ExecutionException e) {
 			e.printStackTrace();
 		}
-		return StringUtils.EMPTY;
-	}
+        return StringUtils.EMPTY;
+    }
 }

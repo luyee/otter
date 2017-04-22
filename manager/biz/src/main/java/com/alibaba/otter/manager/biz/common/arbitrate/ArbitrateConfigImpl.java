@@ -18,6 +18,7 @@ package com.alibaba.otter.manager.biz.common.arbitrate;
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.InitializingBean;
 
@@ -43,135 +44,150 @@ import com.google.common.cache.LoadingCache;
  */
 public class ArbitrateConfigImpl implements ArbitrateConfig, InitializingBean {
 
-	private static final Long DEFAULT_PERIOD = 60 * 1000L;
-	private Long timeout = DEFAULT_PERIOD;
-	private RefreshMemoryMirror<Long, Channel> channelCache;
-	private LoadingCache<Long, Long> channelMapping;
-	private ChannelService channelService;
-	private NodeService nodeService;
-	private RefreshMemoryMirror<Long, Node> nodeCache;
+    private static final Long                  DEFAULT_PERIOD = 60 * 1000L;
+    private Long                               timeout        = DEFAULT_PERIOD;
+    private RefreshMemoryMirror<Long, Channel> channelCache;
+    private LoadingCache<Long, Long>                    channelMapping;
+    private ChannelService                     channelService;
+    private NodeService                        nodeService;
+    private RefreshMemoryMirror<Long, Node>    nodeCache;
 
-	public ArbitrateConfigImpl() {
-		// 注册自己到arbitrate模块
-		ArbitrateConfigRegistry.regist(this);
-	}
+    public ArbitrateConfigImpl(){
+        // 注册自己到arbitrate模块
+        ArbitrateConfigRegistry.regist(this);
+    }
 
-	public Node currentNode() {
-		return null;
-	}
+    public Node currentNode() {
+        return null;
+    }
 
-	public Node findNode(Long nid) {
-		return nodeCache.get(nid);
-	}
+    public Node findNode(Long nid) {
+        return nodeCache.get(nid);
+    }
 
-	public Channel findChannel(Long channelId) {
-		return channelCache.get(channelId);
-	}
+    public Channel findChannel(Long channelId) {
+        return channelCache.get(channelId);
+    }
 
-	public Channel findChannelByPipelineId(Long pipelineId) {
+    public Channel findChannelByPipelineId(Long pipelineId) {
+        Long channelId=0l;
 		try {
-			Long channelId = channelMapping.get(pipelineId);
-			return channelCache.get(channelId);
+			channelId = channelMapping.get(pipelineId);
 		} catch (ExecutionException e) {
-			e.printStackTrace();
-			return null;
 		}
+        return channelCache.get(channelId);
+    }
 
-	}
-
-	public Pipeline findOppositePipeline(Long pipelineId) {
+    public Pipeline findOppositePipeline(Long pipelineId) {
+        Long channelId=0l;
 		try {
-			Long channelId = channelMapping.get(pipelineId);
-			Channel channel = channelCache.get(channelId);
-			List<Pipeline> pipelines = channel.getPipelines();
-			for (Pipeline pipeline : pipelines) {
-				if (pipeline.getId().equals(pipelineId) == false) {// 这里假定pipeline只有两个
-					return pipeline;
-				}
-			}
+			channelId = channelMapping.get(pipelineId);
 		} catch (ExecutionException e) {
-			e.printStackTrace();
 		}
-		return null;
-	}
+        Channel channel = channelCache.get(channelId);
+        List<Pipeline> pipelines = channel.getPipelines();
+        for (Pipeline pipeline : pipelines) {
+            if (pipeline.getId().equals(pipelineId) == false) {// 这里假定pipeline只有两个
+                return pipeline;
+            }
+        }
 
-	public Pipeline findPipeline(Long pipelineId) {
+        return null;
+    }
+
+    public Pipeline findPipeline(Long pipelineId) {
+        Long channelId=0l;
 		try {
-			Long channelId = channelMapping.get(pipelineId);
-			Channel channel = channelCache.get(channelId);
-			List<Pipeline> pipelines = channel.getPipelines();
-			for (Pipeline pipeline : pipelines) {
-				if (pipeline.getId().equals(pipelineId)) {
-					return pipeline;
-				}
-			}
+			channelId = channelMapping.get(pipelineId);
 		} catch (ExecutionException e) {
-			e.printStackTrace();
 		}
-		throw new ConfigException("no pipeline for pipelineId[" + pipelineId + "]");
-	}
+        Channel channel = channelCache.get(channelId);
+        List<Pipeline> pipelines = channel.getPipelines();
+        for (Pipeline pipeline : pipelines) {
+            if (pipeline.getId().equals(pipelineId)) {
+                return pipeline;
+            }
+        }
+        throw new ConfigException("no pipeline for pipelineId[" + pipelineId + "]");
+    }
 
-	public void afterPropertiesSet() throws Exception {
-		// 获取一下nid变量
-		channelMapping = CacheBuilder.newBuilder().maximumSize(1000).build(new CacheLoader<Long, Long>() {
+    public void afterPropertiesSet() throws Exception {
+    	 // 获取一下nid变量
+    	channelMapping =CacheBuilder.newBuilder()
+         .maximumSize(1000)    // 最多可以缓存1000个key
+         .build(
+             new CacheLoader<Long, Long>() {
+                 public Long load(Long pipelineId) {
+                	 Channel channel = channelService.findByPipelineId(pipelineId);
+                     if (channel == null) {
+                         throw new ConfigException("No Such Channel by pipelineId[" + pipelineId + "]");
+                     }
 
-			public Long load(Long pipelineId) {
-				// 处理下pipline -> channel映射关系不存在的情况
-				Channel channel = channelService.findByPipelineId(pipelineId);
-				if (channel == null) {
-					throw new ConfigException("No Such Channel by pipelineId[" + pipelineId + "]");
-				}
+                     updateMapping(channel, pipelineId);// 排除下自己
+                     channelCache.put(channel.getId(), channel);// 更新下channelCache
+                     return channel.getId();
+                 }
+             });
+        // 获取一下nid变量
+//        channelMapping = new MapMaker().makeComputingMap(new Function<Long, Long>() {
+//
+//            public Long apply(Long pipelineId) {
+//                // 处理下pipline -> channel映射关系不存在的情况
+//                Channel channel = channelService.findByPipelineId(pipelineId);
+//                if (channel == null) {
+//                    throw new ConfigException("No Such Channel by pipelineId[" + pipelineId + "]");
+//                }
+//
+//                updateMapping(channel, pipelineId);// 排除下自己
+//                channelCache.put(channel.getId(), channel);// 更新下channelCache
+//                return channel.getId();
+//
+//            }
+//        });
 
-				updateMapping(channel, pipelineId);// 排除下自己
-				channelCache.put(channel.getId(), channel);// 更新下channelCache
-				return channel.getId();
+        channelCache = new RefreshMemoryMirror<Long, Channel>(timeout, new ComputeFunction<Long, Channel>() {
 
-			}
-		});
+            public Channel apply(Long key, Channel oldValue) {
+                Channel channel = channelService.findById(key);
+                if (channel == null) {
+                    // 其他情况直接返回内存中的旧值
+                    return oldValue;
+                } else {
+                    updateMapping(channel, null);// 排除下自己
+                    return channel;
+                }
+            }
+        });
 
-		channelCache = new RefreshMemoryMirror<Long, Channel>(timeout, new ComputeFunction<Long, Channel>() {
+        nodeCache = new RefreshMemoryMirror<Long, Node>(timeout, new ComputeFunction<Long, Node>() {
 
-			public Channel apply(Long key, Channel oldValue) {
-				Channel channel = channelService.findById(key);
-				if (channel == null) {
-					// 其他情况直接返回内存中的旧值
-					return oldValue;
-				} else {
-					updateMapping(channel, null);// 排除下自己
-					return channel;
-				}
-			}
-		});
+            public Node apply(Long key, Node oldValue) {
+                Node node = nodeService.findById(key);
+                if (node == null) {
+                    return oldValue;
+                } else {
+                    return node;
+                }
+            }
+        });
+    }
 
-		nodeCache = new RefreshMemoryMirror<Long, Node>(timeout, new ComputeFunction<Long, Node>() {
+    private void updateMapping(Channel channel, Long excludeId) {
+        Long channelId = channel.getId();
+        List<Pipeline> pipelines = channel.getPipelines();
+        for (Pipeline pipeline : pipelines) {
+            if (excludeId == null || !pipeline.getId().equals(excludeId)) {
+                channelMapping.put(pipeline.getId(), channelId);
+            }
+        }
+    }
 
-			public Node apply(Long key, Node oldValue) {
-				Node node = nodeService.findById(key);
-				if (node == null) {
-					return oldValue;
-				} else {
-					return node;
-				}
-			}
-		});
-	}
+    public void setChannelService(ChannelService channelService) {
+        this.channelService = channelService;
+    }
 
-	private void updateMapping(Channel channel, Long excludeId) {
-		Long channelId = channel.getId();
-		List<Pipeline> pipelines = channel.getPipelines();
-		for (Pipeline pipeline : pipelines) {
-			if (excludeId == null || !pipeline.getId().equals(excludeId)) {
-				channelMapping.put(pipeline.getId(), channelId);
-			}
-		}
-	}
-
-	public void setChannelService(ChannelService channelService) {
-		this.channelService = channelService;
-	}
-
-	public void setNodeService(NodeService nodeService) {
-		this.nodeService = nodeService;
-	}
+    public void setNodeService(NodeService nodeService) {
+        this.nodeService = nodeService;
+    }
 
 }

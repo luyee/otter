@@ -28,6 +28,14 @@ import javax.sql.DataSource;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.ddlutils.model.Table;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Admin;
+import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.elasticsearch.action.admin.indices.exists.types.TypesExistsResponse;
+import org.elasticsearch.client.Client;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -43,6 +51,12 @@ import com.alibaba.otter.shared.common.model.config.data.db.DbMediaSource;
 import com.alibaba.otter.shared.common.utils.meta.DdlSchemaFilter;
 import com.alibaba.otter.shared.common.utils.meta.DdlTableNameFilter;
 import com.alibaba.otter.shared.common.utils.meta.DdlUtils;
+import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
+import com.datastax.driver.core.exceptions.InvalidQueryException;
+
 
 /**
  * @author simon 2011-11-25 下午04:57:55
@@ -110,26 +124,15 @@ public class DataSourceChecker {
     }
 
     @SuppressWarnings("resource")
-    public String check(String url, String username, String password, String encode, String sourceType) {
+    public String check(String name,String url, String username, String password, String encode, String sourceType) {
         Connection conn = null;
         Statement stmt = null;
         ResultSet rs = null;
-        // boolean typeConflict = true;
-        // if ((sourceType.toLowerCase().equals(MYSQL_FLAG) &&
-        // url.toLowerCase().contains(MYSQL_FLAG))
-        // || sourceType.toLowerCase().equals(ORACLE_FLAG) &&
-        // url.toLowerCase().contains(ORACLE_FLAG)) {
-        // typeConflict = false;
-        // }
-        //
-        // if (typeConflict) {
-        // return DBTYPE_CONFLICT;
-        // }
-
-        DataSource dataSource = null;
+       DataSource dataSource = null;
         try {
 
             DbMediaSource dbMediaSource = new DbMediaSource();
+            dbMediaSource.setName(name);
             dbMediaSource.setUrl(url);
             dbMediaSource.setUsername(username);
             dbMediaSource.setPassword(password);
@@ -141,53 +144,92 @@ public class DataSourceChecker {
             } else if (sourceType.equalsIgnoreCase("ORACLE")) {
                 dbMediaSource.setType(DataMediaType.ORACLE);
                 dbMediaSource.setDriver("oracle.jdbc.driver.OracleDriver");
+            } else if (sourceType.equalsIgnoreCase("GREENPLUM")) {
+                dbMediaSource.setType(DataMediaType.GREENPLUM);
+                dbMediaSource.setDriver("com.pivotal.jdbc.GreenplumDriver");
+            }else if (sourceType.equalsIgnoreCase("KAFKA")) {
+                dbMediaSource.setType(DataMediaType.KAFKA);
+            }else if (sourceType.equalsIgnoreCase("CASSANDRA")) {
+                dbMediaSource.setType(DataMediaType.CASSANDRA);
+            }else if (sourceType.equalsIgnoreCase("HBASE")) {
+                dbMediaSource.setType(DataMediaType.HBASE);
+            }else if (sourceType.equalsIgnoreCase("HDFS_ARVO")) {
+                dbMediaSource.setType(DataMediaType.HDFS);
+            }else if (sourceType.equalsIgnoreCase("ELASTICSEARCH")) {
+                dbMediaSource.setType(DataMediaType.ELASTICSEARCH);
             }
-
-            dataSource = dataSourceCreator.createDataSource(dbMediaSource);
-            try {
-                conn = dataSource.getConnection();
-            } catch (Exception e) {
-                logger.error("check error!", e);
-            }
-
-            if (null == conn) {
-                return DATABASE_FAIL;
-            }
-
-            stmt = conn.createStatement();
-            String sql = null;
-            if (sourceType.equals("MYSQL")) {
-                sql = "SHOW VARIABLES LIKE 'character_set_database'";
-            } else if (sourceType.equals("ORACLE")) {
-                // sql
-                // ="select * from V$NLS_PARAMETERS where parameter in('NLS_LANGUAGE','NLS_TERRITORY','NLS_CHARACTERSET')";
-                sql = "select * from V$NLS_PARAMETERS where parameter in('NLS_CHARACTERSET')";
-            }
-            rs = stmt.executeQuery(sql);
-            while (rs.next()) {
-                String defaultEncode = null;
-                if (sourceType.equals("MYSQL")) {
-                    defaultEncode = ((String) rs.getObject(2)).toLowerCase();
-                    defaultEncode = defaultEncode.equals("iso-8859-1") ? "latin1" : defaultEncode;
-                    if (!encode.toLowerCase().equals(defaultEncode)) {
-                        return ENCODE_FAIL + defaultEncode;
-                    }
-                } else if (sourceType.equals("ORACLE")) {
-                    // ORACLE查询服务器默认字符集需要管理员权限
-                    defaultEncode = ((String) rs.getObject(2)).toLowerCase();
-                    defaultEncode = defaultEncode.equalsIgnoreCase("zhs16gbk") ? "gbk" : defaultEncode;
-                    defaultEncode = defaultEncode.equalsIgnoreCase("us7ascii") ? "iso-8859-1" : defaultEncode;
-                    if (!encode.toLowerCase().equals(defaultEncode)) {
-                        return ENCODE_FAIL + defaultEncode;
-                    }
+            if (sourceType.equalsIgnoreCase("MYSQL") || sourceType.equalsIgnoreCase("greenplum") || sourceType.equalsIgnoreCase("ORACLE")){//mysql ,oracle测试
+            	dataSource = dataSourceCreator.createDataSource(dbMediaSource);
+                try {
+                    conn = dataSource.getConnection();
+                } catch (Exception e) {e.printStackTrace();
+                    logger.error("check error!", e);
                 }
+                if (null == conn) {
+                    return DATABASE_FAIL;
+                }
+                String sql = null;
+                if (sourceType.equalsIgnoreCase("MYSQL")) {
+                    sql = "SHOW VARIABLES LIKE 'character_set_database'";
+                } else if (sourceType.equalsIgnoreCase("ORACLE")) {
+                    sql = "select * from V$NLS_PARAMETERS where parameter in('NLS_CHARACTERSET')";
+                }else if (sourceType.equalsIgnoreCase("GREENPLUM")){
+                	sql="SHOW server_encoding";
+                }
+                stmt = conn.createStatement();
+                //测试编码是否一致
+                rs = stmt.executeQuery(sql);
+                while (rs.next()) {
+                    String defaultEncode = null;
+                    if (sourceType.equalsIgnoreCase("MYSQL")) {
+                        defaultEncode = ((String) rs.getObject(2)).toLowerCase();
+                        defaultEncode = defaultEncode.equals("iso-8859-1") ? "latin1" : defaultEncode;
+                        if (!encode.toLowerCase().equals(defaultEncode)) {
+                            return ENCODE_FAIL + defaultEncode;
+                        }
+                    } else if (sourceType.equalsIgnoreCase("ORACLE")) {
+                        // ORACLE查询服务器默认字符集需要管理员权限
+                        defaultEncode = ((String) rs.getObject(2)).toLowerCase();
+                        defaultEncode = defaultEncode.equalsIgnoreCase("zhs16gbk") ? "gbk" : defaultEncode;
+                        defaultEncode = defaultEncode.equalsIgnoreCase("us7ascii") ? "iso-8859-1" : defaultEncode;
+                        if (!encode.toLowerCase().equals(defaultEncode)) {
+                            return ENCODE_FAIL + defaultEncode;
+                        }
+                    }else if (sourceType.equalsIgnoreCase("GREENPLUM")){
+                    	defaultEncode = ((String) rs.getObject(1)).toLowerCase();
+                    	defaultEncode = defaultEncode.equalsIgnoreCase("zhs16gbk") ? "gbk" : defaultEncode;
+                        defaultEncode = defaultEncode.equalsIgnoreCase("us7ascii") ? "iso-8859-1" : defaultEncode;
+                        if (!encode.toLowerCase().equals(defaultEncode)) {
+                            return ENCODE_FAIL + defaultEncode;
+                        }
+                    }
 
+                }
+            }else if (sourceType.equalsIgnoreCase("KAFKA")){
+            	if (dataSourceCreator.getProducer(dbMediaSource)==null){
+            		return DATABASE_FAIL;
+            	}
+            }else if (sourceType.equalsIgnoreCase("CASSANDRA")){
+            	if (dataSourceCreator.getCluster(dbMediaSource)==null){
+            		return DATABASE_FAIL;
+            	}
+            }else if (sourceType.equalsIgnoreCase("HBASE")){
+            	if (dataSourceCreator.getHBaseConnection(dbMediaSource)==null){
+            		return DATABASE_FAIL;
+            	}
+            }else if (sourceType.equalsIgnoreCase("HDFS_ARVO")){
+            	if (dataSourceCreator.getHDFS(dbMediaSource)==null){
+            		return DATABASE_FAIL;
+            	}
+            }else if (sourceType.equalsIgnoreCase("ELASTICSEARCH")){
+            	if (dataSourceCreator.getClient(dbMediaSource)==null){
+            		return DATABASE_FAIL;
+            	}
             }
-
         } catch (SQLException se) {
             logger.error("check error!", se);
             return ENCODE_QUERY_ERROR;
-        } catch (Exception e) {
+        } catch (Exception e) {e.printStackTrace();
             logger.error("check error!", e);
             return DATABASE_FAIL;
         } finally {
@@ -206,62 +248,73 @@ public class DataSourceChecker {
         DataSource dataSource = null;
         try {
             DbMediaSource dbMediaSource = (DbMediaSource) source;
-            dataSource = dataSourceCreator.createDataSource(dbMediaSource);
-            // conn = dataSource.getConnection();
-            // if (null == conn) {
-            // return DATABASE_FAIL;
-            // }
-            ModeValue namespaceValue = ConfigHelper.parseMode(namespace);
-            ModeValue nameValue = ConfigHelper.parseMode(name);
-            String tempNamespace = namespaceValue.getSingleValue();
-            String tempName = nameValue.getSingleValue();
-
-            // String descSql = "desc " + tempNamespace + "." + tempName;
-            // stmt = conn.createStatement();
-
-            try {
-                Table table = DdlUtils.findTable(new JdbcTemplate(dataSource), tempNamespace, tempNamespace, tempName);
-                if (table == null) {
-                    return SELECT_FAIL;
-                }
-            } catch (SQLException se) {
-                logger.error("check error!", se);
-                return SELECT_FAIL;
-            } catch (Exception e) {
-                logger.error("check error!", e);
-                return SELECT_FAIL;
+            if (dbMediaSource.getType().isCassandra()){
+            	Cluster cluster=dataSourceCreator.getCluster(dbMediaSource);
+            	Session session=cluster.connect();
+            	
+            	BoundStatement bindStatement =null;
+            	try{
+            		bindStatement=session.prepare( "select keyspace_name,table_name from system_schema.tables where keyspace_name=? and table_name=?")
+            			.bind(namespace,name);
+            	}catch(InvalidQueryException iqe){
+            		bindStatement=session.prepare( "select keyspace_name,columnfamily_name from system.schema_columnfamilies where keyspace_name=? and columnfamily_name=? ")
+                			.bind(namespace,name);
+            	}
+            	com.datastax.driver.core.ResultSet resultSet = session.execute(bindStatement);
+            	if (!resultSet.iterator().hasNext()) {
+            		session.close();
+            		return SELECT_FAIL;
+            	}
+            	session.close();
+            }else if (dbMediaSource.getType().isElasticSearch()){
+            	Client client=dataSourceCreator.getClient(source);
+            	String[] urls=StringUtils.split(dbMediaSource.getUrl(), "||");
+            	TypesExistsResponse typeResp = client.admin().indices().prepareTypesExists(urls[2]).setTypes(name).execute().actionGet();
+            	if (!typeResp.isExists()){
+            		 return SELECT_FAIL;
+            	}
+            }else if (dbMediaSource.getType().isHbase()){
+            	Admin admin = dataSourceCreator.getHBaseConnection(dbMediaSource).getAdmin();
+            	if (!admin.tableExists(TableName.valueOf(name))) {
+            		return SELECT_FAIL;
+            	}
+            }else if (dbMediaSource.getType().isHDFSArvo()){
+            	FileSystem fs=dataSourceCreator.getHDFS(dbMediaSource);
+            	if (!fs.exists(new Path(name))){
+            		return SELECT_FAIL;
+            	}
+            }else if (dbMediaSource.getType().isKafka()){
+            	Producer<String,String> producer=dataSourceCreator.getProducer(dbMediaSource);
+            	producer.send(new ProducerRecord<>("topic_test", dbMediaSource.getName(),dbMediaSource.getUrl()));
+            }else{
+	            dataSource = dataSourceCreator.createDataSource(dbMediaSource);
+	            ModeValue namespaceValue = ConfigHelper.parseMode(namespace);
+	            ModeValue nameValue = ConfigHelper.parseMode(name);
+	            String tempNamespace = namespaceValue.getSingleValue();
+	            String tempName = nameValue.getSingleValue();
+	            try {
+	            	Table table =null;
+	            	if (dbMediaSource.getType().isGreenplum()){
+	            		String[] sts=StringUtils.split(tempName, ".");
+	            		table=DdlUtils.findTable(new JdbcTemplate(dataSource), tempNamespace, sts[0], sts[1]);
+	            	}else{
+	            		table=DdlUtils.findTable(new JdbcTemplate(dataSource), tempNamespace, tempNamespace, tempName);
+	            	}
+	                if (table == null) {
+	                    return SELECT_FAIL;
+	                }
+	            } catch (SQLException se) {
+	                logger.error("check error!", se);
+	                return SELECT_FAIL;
+	            } catch (Exception e) {
+	                logger.error("check error!", e);
+	                return SELECT_FAIL;
+	            }
             }
-
-            // String selectSql = "SELECT * from " + tempNamespace + "." +
-            // tempName + " where 1 = 0";
-            // String insertSql = "INSERT INTO " + tempNamespace + "." +
-            // tempName + " select * from ";
-            // insertSql += "( SELECT * from " + tempNamespace + "." + tempName
-            // + ") table2 where 1 = 0";
-            // String deleteSql = "DELETE from " + tempNamespace + "." +
-            // tempName + " where 1 = 0";
-            //
-            // stmt = conn.createStatement();
-            //
-            // try {
-            // stmt.executeQuery(selectSql);
-            // } catch (SQLException se) {
-            // return SELECT_FAIL;
-            // }
-            //
-            // try {
-            // stmt.execute(insertSql);
-            // } catch (SQLException se) {
-            // return INSERT_FAIL;
-            // }
-            //
-            // try {
-            // stmt.execute(deleteSql);
-            // } catch (SQLException se) {
-            // return DELETE_FAIL;
-            // }
-
-        } finally {
+        } catch (Exception e) {
+			e.printStackTrace();
+			return SELECT_FAIL;
+		} finally {
             closeConnection(conn, stmt);
             dataSourceCreator.destroyDataSource(dataSource);
         }
@@ -275,45 +328,104 @@ public class DataSourceChecker {
         try {
             DataMediaSource source = dataMediaSourceService.findById(dataSourceId);
             DbMediaSource dbMediaSource = (DbMediaSource) source;
-            dataSource = dataSourceCreator.createDataSource(dbMediaSource);
-            JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
-
-            List<String> schemaList;
-            {
-                ModeValue mode = ConfigHelper.parseMode(namespace);
-                String schemaPattern = ConfigHelper.makeSQLPattern(mode, namespace);
-                final ModeValueFilter modeValueFilter = ConfigHelper.makeModeValueFilter(mode, namespace);
-                if (source.getType().isOracle()) {
-                    schemaList = Arrays.asList(namespace);
-                } else {
-                    schemaList = DdlUtils.findSchemas(jdbcTemplate, schemaPattern, new DdlSchemaFilter() {
-
-                        @Override
-                        public boolean accept(String schemaName) {
-                            return modeValueFilter.accept(schemaName);
-                        }
-                    });
-                }
-            }
-
             final List<String> matchSchemaTables = new ArrayList<String>();
             matchSchemaTables.add("Find schema and tables:");
-            if (schemaList != null) {
-                ModeValue mode = ConfigHelper.parseMode(name);
-                String tableNamePattern = ConfigHelper.makeSQLPattern(mode, name);
-                final ModeValueFilter modeValueFilter = ConfigHelper.makeModeValueFilter(mode, name);
-                for (String schema : schemaList) {
-                    DdlUtils.findTables(jdbcTemplate, schema, schema, tableNamePattern, null, new DdlTableNameFilter() {
-
-                        @Override
-                        public boolean accept(String catalogName, String schemaName, String tableName) {
-                            if (modeValueFilter.accept(tableName)) {
-                                matchSchemaTables.add(schemaName + "." + tableName);
-                            }
-                            return false;
-                        }
-                    });
+            if (dbMediaSource.getType().isCassandra()){
+            	Cluster cluster=dataSourceCreator.getCluster(dbMediaSource);
+            	Session session=cluster.connect();
+            	BoundStatement bindStatement =null;
+            	boolean isv3=true;
+            	try{
+            		bindStatement=session.prepare( "select keyspace_name,table_name from system_schema.tables where keyspace_name=? and table_name=?")
+            			.bind(namespace,name);
+            	}catch(InvalidQueryException iqe){
+                    bindStatement=session.prepare( "select keyspace_name,columnfamily_name from system.schema_columnfamilies where keyspace_name=? and columnfamily_name=? ")
+                        			.bind(namespace,name);
+                    isv3=false;
                 }
+            	com.datastax.driver.core.ResultSet resultSet = session.execute(bindStatement);
+            	if (!resultSet.iterator().hasNext()) {
+            		session.close();
+            		return TABLE_FAIL;
+            	}
+            	for(Row row:resultSet){
+            		if (isv3){
+            			matchSchemaTables.add(row.getString("keyspace_name") + "." + row.getString("table_name"));
+            		}else{
+            			matchSchemaTables.add(row.getString("keyspace_name") + "." + row.getString("columnfamily_name"));
+            		}
+            	}
+            }else if (dbMediaSource.getType().isElasticSearch()){
+            	Client client=dataSourceCreator.getClient(source);
+            	TypesExistsResponse typeResp = client.admin().indices().prepareTypesExists(namespace).setTypes(name).execute().actionGet();
+            	if (!typeResp.isExists()){
+            		 return TABLE_FAIL;
+            	}else{
+            		 matchSchemaTables.add(namespace + "." + name);
+            	}
+            }else if (dbMediaSource.getType().isHbase()){
+            	Admin admin = dataSourceCreator.getHBaseConnection(dbMediaSource).getAdmin();
+            	if (!admin.tableExists(TableName.valueOf(name))) {
+            		return TABLE_FAIL;
+            	}else{
+            		matchSchemaTables.add( name);
+            	}
+            }else if (dbMediaSource.getType().isHDFSArvo()){
+            	FileSystem fs=dataSourceCreator.getHDFS(dbMediaSource);
+            	if (!fs.exists(new Path(name))){
+            		return TABLE_FAIL;
+            	}else{
+            		matchSchemaTables.add( name);
+            	}
+            }else if (dbMediaSource.getType().isKafka()){
+            	Producer<String,String> producer=dataSourceCreator.getProducer(dbMediaSource);
+            	producer.send(new ProducerRecord<>("topic_test", dbMediaSource.getName(),dbMediaSource.getUrl()));
+            	matchSchemaTables.add(name);
+            }else{
+	            dataSource = dataSourceCreator.createDataSource(dbMediaSource);
+	            JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+	            List<String> schemaList;
+	            {
+	                ModeValue mode = ConfigHelper.parseMode(namespace);
+	                String schemaPattern = ConfigHelper.makeSQLPattern(mode, namespace);
+	                final ModeValueFilter modeValueFilter = ConfigHelper.makeModeValueFilter(mode, namespace);
+	                if (source.getType().isOracle()||source.getType().isGreenplum()) {
+	                    schemaList = Arrays.asList(namespace);
+	                } else {
+	                    schemaList = DdlUtils.findSchemas(jdbcTemplate, schemaPattern, new DdlSchemaFilter() {
+	                        @Override
+	                        public boolean accept(String schemaName) {
+	                            return modeValueFilter.accept(schemaName);
+	                        }
+	                    });
+	                }
+	            }
+	            if (schemaList != null) {
+	            	ModeValue mode = ConfigHelper.parseMode(name);
+	                String tableNamePattern = ConfigHelper.makeSQLPattern(mode, name);
+	                ModeValueFilter modeValueFilter = ConfigHelper.makeModeValueFilter(mode, name);
+	                for (String schema : schemaList) {
+	                	String sname=schema;
+	                	String tname=tableNamePattern;
+	                	if (dbMediaSource.getType().isGreenplum()){
+		            		String[] sts=StringUtils.split(name, ".");
+		            		sname=sts[0];
+		            		mode = ConfigHelper.parseMode(sts[1]);
+		            		tname=ConfigHelper.makeSQLPattern(mode, sts[1]);
+		            		modeValueFilter = ConfigHelper.makeModeValueFilter(mode, tname);
+		            	}
+	                	final ModeValueFilter mvfilter=modeValueFilter;
+	                    DdlUtils.findTables(jdbcTemplate, schema, sname, tname, null, new DdlTableNameFilter() {
+	                        @Override
+	                        public boolean accept(String catalogName, String schemaName, String tableName) {
+	                            if (mvfilter.accept(tableName)) {
+	                                matchSchemaTables.add(schemaName + "." + tableName);
+	                            }
+	                            return false;
+	                        }
+	                    });
+	                }
+	            }
             }
             if (matchSchemaTables.size() == 1) {
                 return TABLE_FAIL;

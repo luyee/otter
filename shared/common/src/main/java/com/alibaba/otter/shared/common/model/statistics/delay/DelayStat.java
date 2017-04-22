@@ -35,6 +35,8 @@ public class DelayStat implements Serializable {
     private Long              pipelineId;
     private Long              delayNumber;                             // 延迟数量
     private Long              delayTime;                               // 延迟时间
+    private Long minDelayTime;
+	private Long maxDelayTime;
     private Date              gmtCreate;
     private Date              gmtModified;
 
@@ -54,7 +56,23 @@ public class DelayStat implements Serializable {
         this.pipelineId = pipelineId;
     }
 
-    public Long getDelayNumber() {
+    public Long getMinDelayTime() {
+		return minDelayTime;
+	}
+
+	public void setMinDelayTime(Long minDelayTime) {
+		this.minDelayTime = minDelayTime;
+	}
+
+	public Long getMaxDelayTime() {
+		return maxDelayTime;
+	}
+
+	public void setMaxDelayTime(Long maxDelayTime) {
+		this.maxDelayTime = maxDelayTime;
+	}
+
+	public Long getDelayNumber() {
         return delayNumber;
     }
 

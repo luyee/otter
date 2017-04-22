@@ -421,9 +421,18 @@ $control.setTemplate("home:navigation.vm")
 	  <tr>
        <th>过滤表达式：</th>
        <td>
-    		<textarea cols="45" rows="5" name="$canalParameterGroup.blackFilter.key">$!canalParameterGroup.blackFilter.value</textarea><span class="red">*</span>
+    		<textarea cols="80" rows="5" name="$canalParameterGroup.blackFilter.key">$!canalParameterGroup.blackFilter.value</textarea><span class="red">*</span>
     		<br />
-    		<span class="red">#addCanalMessage ($canalParameterGroup.blackFilter)</span>
+    		<span class="red">mysql 数据解析关注的表，Perl正则表达式.<br/>
+多个正则之间以逗号(,)分隔，转义符需要双斜杠(\\)<br/>
+
+常见例子：<br/>
+1.  所有表：.*   or  .*\\..*<br/>
+2.  canal schema下所有表： canal\\..*<br/>
+3.  canal下的以canal打头的表：canal\\.canal.*<br/>
+4.  canal schema下的一张表：canal.test1<br/>
+5.  多个规则组合使用：canal\\..*,mysql.test1,mysql.test2 (逗号分隔)<br/>
+    		#addCanalMessage ($canalParameterGroup.blackFilter)</span>
 	   </td>
       </tr>
 	  <tr>

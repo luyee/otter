@@ -25,7 +25,6 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.alibaba.otter.shared.common.utils.Assert;
 import com.alibaba.otter.manager.biz.common.exceptions.ManagerException;
 import com.alibaba.otter.manager.biz.common.exceptions.RepeatConfigureException;
 import com.alibaba.otter.manager.biz.config.datacolumnpair.DataColumnPairGroupService;
@@ -39,7 +38,11 @@ import com.alibaba.otter.shared.common.model.config.data.ColumnPair;
 import com.alibaba.otter.shared.common.model.config.data.DataMedia;
 import com.alibaba.otter.shared.common.model.config.data.DataMediaPair;
 import com.alibaba.otter.shared.common.model.config.data.ExtensionData;
+import com.alibaba.otter.shared.common.model.config.data.db.DbMediaSource;
+import com.alibaba.otter.shared.common.utils.Assert;
 import com.alibaba.otter.shared.common.utils.JsonUtils;
+
+import kafka.admin.TopicCommand;
 
 /**
  * @author simon
@@ -117,6 +120,8 @@ public class DataMediaPairServiceImpl implements DataMediaPairService {
         Assert.assertNotNull(dataMediaPairId);
 
         try {
+        	dataColumnPairService.removeByDataMediaPairId(dataMediaPairId);
+        	dataColumnPairGroupService.removeByDataMediaPairId(dataMediaPairId);
             dataMediaPairDao.delete(dataMediaPairId);
         } catch (Exception e) {
             logger.error("ERROR ## remove dataMediaPair has an exception!", e);
@@ -405,4 +410,15 @@ public class DataMediaPairServiceImpl implements DataMediaPairService {
     public void setDataColumnPairGroupService(DataColumnPairGroupService dataColumnPairGroupService) {
         this.dataColumnPairGroupService = dataColumnPairGroupService;
     }
+
+	@Override
+	public void createKafkaTopic(DataMediaPair dataMediaPair,int pnum,int repnum) {
+		DbMediaSource dm=(DbMediaSource)dataMediaPair.getTarget().getSource();
+		String[] urls=StringUtils.split(dm.getUrl(),"|");
+		if (urls.length==2){
+			String[] options = new String[] { "--create", "--zookeeper", urls[1], "--partitions", pnum+"",
+					"--topic",dataMediaPair.getSource().getNamespace(), "--replication-factor", repnum+"" };
+			TopicCommand.main(options);
+		}
+	}
 }

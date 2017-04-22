@@ -90,10 +90,14 @@ public class ChannelList {
         for (Channel channel : channels) {
             boolean processEmpty = false;
             List<Pipeline> pipelines = channel.getPipelines();
-            for (Pipeline pipeline : pipelines) {
-                if (processStatService.listRealtimeProcessStat(channel.getId(), pipeline.getId()).isEmpty()) {
-                    processEmpty = true;
-                }
+            try{
+	            for (Pipeline pipeline : pipelines) {
+	                if (processStatService.listRealtimeProcessStat(channel.getId(), pipeline.getId()).isEmpty()) {
+	                    processEmpty = true;
+	                }
+	            }
+            }catch(Exception e){
+            	e.printStackTrace();
             }
             SeniorChannel seniorChannel = new SeniorChannel();
             seniorChannel.setId(channel.getId());

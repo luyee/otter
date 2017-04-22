@@ -21,6 +21,8 @@ import java.util.List;
 
 import javax.annotation.Resource;
 
+import org.apache.commons.lang.math.NumberUtils;
+
 import com.alibaba.citrus.service.form.CustomErrors;
 import com.alibaba.citrus.service.form.Group;
 import com.alibaba.citrus.turbine.Navigator;
@@ -55,8 +57,15 @@ public class ColumnPairGroupAction {
         for (String columnPairString : columnPairStrings) {
             ColumnPair columnPair = new ColumnPair();
             String[] temp = columnPairString.split(COLON);
-            columnPair.setSourceColumn(new Column(temp[0]));
-            columnPair.setTargetColumn(new Column(temp[1]));
+            if (temp.length==4){
+	            columnPair.setSourceColumn(new Column(temp[0]));
+	            columnPair.setTargetColumn(new Column(temp[3]));
+	            columnPair.setIsPk(NumberUtils.toInt(temp[1],0));
+	            columnPair.setFunctionName(temp[2]);
+            }else{
+            	 columnPair.setSourceColumn(new Column(temp[0]));
+                 columnPair.setTargetColumn(new Column(temp[1]));
+            }
             columnPair.setDataMediaPairId(dataMediaPairId);
             columnPairs.add(columnPair);
         }

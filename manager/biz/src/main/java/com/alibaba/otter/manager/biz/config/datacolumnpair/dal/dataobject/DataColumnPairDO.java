@@ -33,6 +33,9 @@ public class DataColumnPairDO implements Serializable {
     private Long              dataMediaPairId;
     private Date              gmtCreate;
     private Date              gmtModified;
+    private Integer 			  isPk=0;//是否主键(key)，1： 是 0：否 针对hbase,cassandra,es等kv结构的key
+    private String 			  functionName;//字段值转换函数
+    private Integer 			  sourceType;//数据来源类型 0-原始字段数据 1-表名 2-当前时间 3-当前用户
 
     public Long getId() {
         return id;
@@ -41,8 +44,32 @@ public class DataColumnPairDO implements Serializable {
     public void setId(Long id) {
         this.id = id;
     }
+    
+    public Integer getIsPk() {
+		return isPk;
+	}
 
-    public String getSourceColumnName() {
+	public void setIsPk(Integer isPk) {
+		this.isPk = isPk;
+	}
+
+	public String getFunctionName() {
+		return functionName;
+	}
+
+	public void setFunctionName(String functionName) {
+		this.functionName = functionName;
+	}
+
+	public Integer getSourceType() {
+		return sourceType;
+	}
+
+	public void setSourceType(Integer sourceType) {
+		this.sourceType = sourceType;
+	}
+
+	public String getSourceColumnName() {
         return sourceColumnName;
     }
 

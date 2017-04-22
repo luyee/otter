@@ -16,15 +16,31 @@
 
 package com.alibaba.otter.manager.biz.config.datamedia.impl;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import javax.sql.DataSource;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.ddlutils.model.Column;
 import org.apache.ddlutils.model.Table;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.elasticsearch.action.admin.indices.exists.types.TypesExistsResponse;
+import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -43,6 +59,12 @@ import com.alibaba.otter.shared.common.model.config.data.db.DbDataMedia;
 import com.alibaba.otter.shared.common.model.config.data.mq.MqDataMedia;
 import com.alibaba.otter.shared.common.utils.JsonUtils;
 import com.alibaba.otter.shared.common.utils.meta.DdlUtils;
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Session;
+import com.datastax.driver.core.exceptions.InvalidQueryException;
 
 /**
  * @author simon
@@ -68,20 +90,92 @@ public class DataMediaServiceImpl implements DataMediaService {
         if (dataMedia.getSource().getType().isNapoli()) {
             return columnResult;
         }
-
-        DataSource dataSource = dataSourceCreator.createDataSource(dataMedia.getSource());
-        // 针对multi表，直接获取第一个匹配的表结构
         String schemaName = dataMedia.getNamespaceMode().getSingleValue();
         String tableName = dataMedia.getNameMode().getSingleValue();
-        try {
-            Table table = DdlUtils.findTable(new JdbcTemplate(dataSource), schemaName, schemaName, tableName);
-            for (Column column : table.getColumns()) {
-                columnResult.add(column.getName());
+        if (dataMedia.getSource().getType().isCassandra()){
+        	Cluster cluster=dataSourceCreator.getCluster(dataMedia.getSource());
+        	Session session=cluster.connect();
+        	BoundStatement bindStatement =null;
+        	try{
+        		bindStatement=session.prepare( "select column_name from system_schema.columns where keyspace_name=? and table_name=?")
+        			.bind(schemaName,tableName);
+        	}catch(InvalidQueryException iqe){
+                bindStatement=session.prepare( "select column_name from system.schema_columns where keyspace_name=? and columnfamily_name=? ")
+                    			.bind(schemaName,tableName);
             }
-        } catch (Exception e) {
-            logger.error("ERROR ## DdlUtils find table happen error!", e);
+        	com.datastax.driver.core.ResultSet resultSet = session.execute(bindStatement);
+        	for(Row row:resultSet){
+        		columnResult.add(row.getString("column_name"));
+        	}
+        	session.close();
+        }else if (dataMedia.getSource().getType().isElasticSearch()){
+        	Client client=dataSourceCreator.getClient(dataMedia.getSource());
+        	if (client==null) return columnResult;
+        	GetMappingsResponse mappingResp = client.admin().indices().prepareGetMappings(schemaName).setTypes(tableName).execute().actionGet();
+        	ImmutableOpenMap<String, MappingMetaData> mappings =mappingResp.getMappings().get(schemaName);
+        	if (mappings!=null){
+	        	for (ObjectObjectCursor<String, MappingMetaData> typeEntry : mappings) {
+	        		if (tableName.equalsIgnoreCase(typeEntry.key)){
+						try {
+							Map<String, Object> fields = typeEntry.value.sourceAsMap();
+							Map mf=(Map)fields.get("properties");
+							Iterator iter=mf.entrySet().iterator();
+							while(iter.hasNext()){//字段
+								Map.Entry<String,Map> ob=(Map.Entry<String,Map>) iter.next();
+								columnResult.add(ob.getKey());
+							}
+						} catch (IOException e) {
+							e.printStackTrace();
+							logger.error("ERROR ## ElasticSearch find table happen error!", e);
+						}
+	        		}
+	        	}
+        	}
+        }else if (dataMedia.getSource().getType().isHbase()){
+        	try {
+				org.apache.hadoop.hbase.client.Table htable =dataSourceCreator.getHBaseConnection(dataMedia.getSource()).getTable(TableName.valueOf(tableName));
+				Scan scan = new Scan();
+				scan.setBatch(10);
+				ResultScanner rs =htable.getScanner(scan);
+				HashSet<String> columns=new HashSet<String>();
+				int rowid=0;
+				for (Result ur = rs.next(); ur != null; ur = rs.next()) {
+					List<Cell> cells=ur.listCells();
+					for(Cell cell:cells){
+						CellUtil.cloneFamily(cell);
+						columns.add(Bytes.toString(CellUtil.cloneFamily(cell))+":"+Bytes.toString(CellUtil.cloneQualifier(cell)));
+					}
+					rowid++;
+					if (rowid>10)break;
+				}
+				columnResult.addAll(columns);
+			} catch (IOException e) {
+				e.printStackTrace();
+				 logger.error("ERROR ## HBase find table happen error!", e);
+			}
+        }else if (dataMedia.getSource().getType().isHDFSArvo()){
+        	
+        }else if (dataMedia.getSource().getType().isKafka()){
+        	
+        } else{
+	        DataSource dataSource = dataSourceCreator.createDataSource(dataMedia.getSource());
+	        // 针对multi表，直接获取第一个匹配的表结构
+	        try {
+	        	Table table =null;
+            	if (dataMedia.getSource().getType().isGreenplum()){
+            		String[] sts=StringUtils.split(tableName, ".");
+            		table=DdlUtils.findTable(new JdbcTemplate(dataSource), schemaName, sts[0], sts[1]);
+            	}else{
+            		table = DdlUtils.findTable(new JdbcTemplate(dataSource), schemaName, schemaName, tableName);
+            	}
+	           // Table table = DdlUtils.findTable(new JdbcTemplate(dataSource), schemaName, schemaName, tableName);
+	            for (Column column : table.getColumns()) {
+	                columnResult.add(column.getName());
+	            }
+	        } catch (Exception e) {
+	            logger.error("ERROR ## DdlUtils find table happen error!", e);
+	        }
         }
-
         return columnResult;
     }
 
@@ -310,7 +404,9 @@ public class DataMediaServiceImpl implements DataMediaService {
         DataMedia dataMedia = null;
         try {
             DataMediaSource dataMediaSource = dataMediaSourceService.findById(dataMediaDo.getDataMediaSourceId());
-            if (dataMediaSource.getType().isMysql() || dataMediaSource.getType().isOracle()) {
+            if (dataMediaSource.getType().isMysql() || dataMediaSource.getType().isOracle()
+            		||dataMediaSource.getType().isElasticSearch()||dataMediaSource.getType().isCassandra()||dataMediaSource.getType().isGreenplum()
+            		||dataMediaSource.getType().isHbase()||dataMediaSource.getType().isHDFSArvo()||dataMediaSource.getType().isKafka()) {
                 dataMedia = JsonUtils.unmarshalFromString(dataMediaDo.getProperties(), DbDataMedia.class);
                 dataMedia.setSource(dataMediaSource);
             } else if (dataMediaSource.getType().isNapoli() || dataMediaSource.getType().isMq()) {

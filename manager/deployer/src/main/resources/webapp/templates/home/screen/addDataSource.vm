@@ -6,7 +6,26 @@ $control.setTemplate("home:navigation.vm")
 <script language="javascript">
 <!--
 	changeNav("datamedia");
-
+	
+function changeform(){
+	if (addSourceForm.sourceType.value=='KAFKA'){
+		$("#dsUrl").html("zookeeper hosts:");
+	}else if (addSourceForm.sourceType.value=='HBASE'){
+		$("#dsUrl").html("hbase-site:");
+	}else if (addSourceForm.sourceType.value=='ELASTICSEARCH'){
+		$("#dsUrl").html("hosts:");
+	}else if (addSourceForm.sourceType.value=='CASSANDRA'){
+		$("#dsUrl").html("url:");
+	}else if (addSourceForm.sourceType.value=='HDFS-ARVO'){
+		$("#dsUrl").html("hdfs-site:");
+	}else if (addSourceForm.sourceType.value=='MYSQL'){
+		$("#dsUrl").html("url:");
+	}else if (addSourceForm.sourceType.value=='ORACLE'){
+		$("#dsUrl").html("url:");
+	}else if (addSourceForm.sourceType.value=='GREENPLUM'){
+		$("#dsUrl").html("url:");
+	}
+}
 //-->
 </script>
 #macro (addDataSourceMessage $field)
@@ -25,7 +44,7 @@ $control.setTemplate("home:navigation.vm")
 	<input type="hidden" name="event_submit_do_add" value="1" />
  <div class="setting_box">
 	#set ($dataMediaSourceGroup = $form.dataMediaSourceInfo.defaultInstance)
-    <table cellpadding="0" cellspacing="0" class="setting_otter">
+    <table cellpadding="0" cellspacing="0" class="setting_otter" width="100%">
 		<span class="red">#addDataSourceMessage ($dataMediaSourceGroup.formDataMediaSourceError)</span>
       <tr> 
         <th width="300">数据源名字：</th>
@@ -39,12 +58,13 @@ $control.setTemplate("home:navigation.vm")
         <th>类型：</th>
         <td>
             <select id="sourceType" name="$dataMediaSourceGroup.type.key" onchange="changeform();" >
-            <option value="MYSQL">MySQL</option>
-            <option value="ORACLE">Oracle</option>
             <option value="KAFKA">KAFKA</option>
+            <option value="MetaQ">MetaQ</option>
             <option value="HBASE">HBASE</option>
             <option value="ELASTICSEARCH">ELASTICSEARCH</option>
             <option value="CASSANDRA">CASSANDRA</option>
+            <option value="MYSQL">MySQL</option>
+            <option value="ORACLE">Oracle</option>
             <option value="GREENPLUM">GREENPLUM</option>
 			</select><span class="red">*</span>
         </td>
@@ -66,7 +86,7 @@ $control.setTemplate("home:navigation.vm")
 		</td>
       </tr>
 	  <tr> 
-        <th>URL：</th>
+        <th id="dsUrl">zookeeper hosts：</th>
         <td>
 			<input id="sourceUrl" name="$dataMediaSourceGroup.url.key" value="$!dataMediaSourceGroup.url.value" type="text" class="setting_input"/>
 			<br />
@@ -109,7 +129,7 @@ $control.setTemplate("home:navigation.vm")
 			HBASE例子 :/home/da/hbase-site.xml<br/>
 			ELASTICSEARCH例子 :test74:9300;test75:9300;test76:9300||clustername||indexname<br/>
 			CASSANDRA例子 :test75:2688;test76:2688<br/>
-			GreenPLUM例子:
+			HDFS-ARVO例子 :/home/da/hdfs-site.xml||hdfs://test74:8020/Users/data/<br/>
 			media例子 : jdbc:mysql://groupKey=key (更改 key)
 		</td>
       </tr>
