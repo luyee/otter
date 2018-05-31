@@ -344,6 +344,7 @@ public class PermitMonitor extends ArbitrateLifeCycle implements Monitor {
         if (logger.isDebugEnabled()) {
             logger.debug("pipeline[{}] new mainStemStatus is [{}]", getPipelineId(), newStatus);
         }
+        logger.debug("pipeline[{}] old mainStemStatus is [{}], new mainStemStatus is [{}]", getPipelineId(), mainStemStatus, newStatus);
 
         synchronized (this) {
             if (!mainStemStatus.equals(newStatus)) {
@@ -456,23 +457,23 @@ public class PermitMonitor extends ArbitrateLifeCycle implements Monitor {
     private void permitSem() {
         if (channelStatus.isStart()) {
             channelMutex.set(true);
-            logger.debug("channel status is ok!");
+            logger.debug("channel status is ok! " +getPipelineId());
         } else {
             channelMutex.set(false);
-            logger.debug("channel status is fail!");
+            logger.debug("channel status is fail! " +getPipelineId());
         }
 
         boolean permit = isPermit(false);
         if (permit == false) {
             if (logger.isDebugEnabled()) {
-                logger.debug("Permit is fail!");
+                logger.debug("Permit is fail!"  +getPipelineId());
             }
             // 如果未授权，则设置信号量为0
             permitMutex.set(false);
         } else {
             // 信号量+1
             if (logger.isDebugEnabled()) {
-                logger.debug("Permit is Ok!");
+                logger.debug("Permit is Ok! " +getPipelineId());
             }
             permitMutex.set(true);
         }

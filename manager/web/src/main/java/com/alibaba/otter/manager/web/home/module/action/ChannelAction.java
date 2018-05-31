@@ -18,6 +18,9 @@ package com.alibaba.otter.manager.web.home.module.action;
 
 import javax.annotation.Resource;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.alibaba.citrus.service.form.CustomErrors;
 import com.alibaba.citrus.service.form.Group;
 import com.alibaba.citrus.turbine.Navigator;
@@ -41,6 +44,7 @@ import com.alibaba.otter.shared.common.model.config.channel.ChannelStatus;
  * @author simon 2011-10-21 下午02:49:18
  */
 public class ChannelAction extends AbstractAction {
+    protected final Logger              logger  = LoggerFactory.getLogger(this.getClass());
 
     @Resource(name = "channelService")
     private ChannelService  channelService;
@@ -169,7 +173,7 @@ public class ChannelAction extends AbstractAction {
     public void doNotify(@Param("pageIndex") int pageIndex, @Param("searchKey") String searchKey,
                          @Param("channelId") Long channelId, @Param("status") String status, Navigator nav)
                                                                                                            throws WebxException {
-
+    	logger.warn(String.format("notify channelId: %d", channelId));
         channelService.notifyChannel(channelId);
         nav.redirectToLocation("channelList.htm?pageIndex=" + pageIndex + "&searchKey=" + urlEncode(searchKey));
     }

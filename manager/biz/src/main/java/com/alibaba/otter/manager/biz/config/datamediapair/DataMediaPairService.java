@@ -35,6 +35,4 @@ public interface DataMediaPairService extends GenericService<DataMediaPair> {
     public Long createAndReturnId(DataMediaPair dataMediaPair);
 
     public boolean createIfNotExist(DataMediaPair dataMediaPair);
-
-	public void createKafkaTopic(DataMediaPair dataMediaPair,int pnum,int repnum);
 }

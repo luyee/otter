@@ -52,13 +52,32 @@ public class SeniorCanal extends Canal {
         CanalParameter parameter = getCanalParameter();
         if (parameter.getHaMode().isMedia()) {
             return "media://" + parameter.getMediaGroup();
+        } else if(parameter.getSourcingType().isKafka()){
+            StringBuilder address = new StringBuilder("");
+            for (List<DataSourcing> groupAddress : parameter.getGroupDbAddresses()) {
+                int i = 0;
+                for (DataSourcing dbAddress : groupAddress) {
+                    ++i;
+                    address.append(dbAddress.getDbAddress().getAddress().getHostName())
+                        .append(":")
+                        .append(dbAddress.getDbAddress().getPort());
+
+                    if (i < groupAddress.size()) {
+                        address.append(',');
+                    }
+                }
+
+                address.append(';');
+            }
+
+            return address.toString();
         } else {
             StringBuilder address = new StringBuilder("jdbc://");
             for (List<DataSourcing> groupAddress : parameter.getGroupDbAddresses()) {
                 int i = 0;
                 for (DataSourcing dbAddress : groupAddress) {
                     ++i;
-                    address.append(dbAddress.getDbAddress().getAddress().getHostAddress())
+                    address.append(dbAddress.getDbAddress().getAddress().getHostName())
                         .append(":")
                         .append(dbAddress.getDbAddress().getPort());
 

@@ -24,6 +24,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alibaba.otter.shared.common.utils.Assert;
 import com.alibaba.otter.manager.biz.common.exceptions.ManagerException;
 import com.alibaba.otter.manager.biz.common.exceptions.RepeatConfigureException;
 import com.alibaba.otter.manager.biz.config.datamediasource.DataMediaSourceService;
@@ -37,7 +38,6 @@ import com.alibaba.otter.shared.common.model.config.data.hbase.HBaseMediaSource;
 import com.alibaba.otter.shared.common.model.config.data.hdfs.HDFSMediaSource;
 import com.alibaba.otter.shared.common.model.config.data.kafka.KafkaMediaSource;
 import com.alibaba.otter.shared.common.model.config.data.mq.MqMediaSource;
-import com.alibaba.otter.shared.common.utils.Assert;
 import com.alibaba.otter.shared.common.utils.JsonUtils;
 
 /**
@@ -199,7 +199,17 @@ public class DataMediaSourceServiceImpl implements DataMediaSourceService {
             dataMediaSourceDo.setType(dataMediaSource.getType());
             if (dataMediaSource instanceof DbMediaSource) {
                 dataMediaSourceDo.setProperties(JsonUtils.marshalToString((DbMediaSource) dataMediaSource));
-            } else if (dataMediaSource instanceof MqMediaSource) {
+            }else if (dataMediaSource instanceof KafkaMediaSource) {
+                dataMediaSourceDo.setProperties(JsonUtils.marshalToString((KafkaMediaSource) dataMediaSource));
+            }else if (dataMediaSource instanceof HBaseMediaSource) {
+                dataMediaSourceDo.setProperties(JsonUtils.marshalToString((HBaseMediaSource) dataMediaSource));
+            }else if (dataMediaSource instanceof ElasticSearchMediaSource) {
+                dataMediaSourceDo.setProperties(JsonUtils.marshalToString((ElasticSearchMediaSource) dataMediaSource));
+            }else if (dataMediaSource instanceof HDFSMediaSource) {
+                dataMediaSourceDo.setProperties(JsonUtils.marshalToString((HDFSMediaSource) dataMediaSource));
+            }else if (dataMediaSource instanceof CassandraMediaSource) {
+                dataMediaSourceDo.setProperties(JsonUtils.marshalToString((CassandraMediaSource) dataMediaSource));
+            }  else if (dataMediaSource instanceof MqMediaSource) {
                 dataMediaSourceDo.setProperties(JsonUtils.marshalToString((MqMediaSource) dataMediaSource));
             } else if (dataMediaSourceDo.getType().isElasticSearch() ) {
                 dataMediaSource = JsonUtils.unmarshalFromString(dataMediaSourceDo.getProperties(), ElasticSearchMediaSource.class);
@@ -210,10 +220,12 @@ public class DataMediaSourceServiceImpl implements DataMediaSourceService {
             } else if (dataMediaSourceDo.getType().isHDFSArvo() ) {
                 dataMediaSource = JsonUtils.unmarshalFromString(dataMediaSourceDo.getProperties(), HDFSMediaSource.class);
             } else if (dataMediaSourceDo.getType().isKafka()) {
-                dataMediaSource = JsonUtils.unmarshalFromString(dataMediaSourceDo.getProperties(), KafkaMediaSource.class);
+            	dataMediaSourceDo.setProperties(JsonUtils.marshalToString((KafkaMediaSource) dataMediaSource));
+                //dataMediaSource = JsonUtils.unmarshalFromString(dataMediaSourceDo.getProperties(), KafkaMediaSource.class);
             }else if (dataMediaSourceDo.getType().isMq()) {
                 dataMediaSource = JsonUtils.unmarshalFromString(dataMediaSourceDo.getProperties(), MqMediaSource.class);
             }
+
             dataMediaSourceDo.setGmtCreate(dataMediaSource.getGmtCreate());
             dataMediaSourceDo.setGmtModified(dataMediaSource.getGmtModified());
         } catch (Exception e) {
@@ -232,27 +244,27 @@ public class DataMediaSourceServiceImpl implements DataMediaSourceService {
      */
     private DataMediaSource doToModel(DataMediaSourceDO dataMediaSourceDo) {
 
-        DataMediaSource dataMediaSource = new DataMediaSource();
+        DataMediaSource dataMediaSource = new DbMediaSource();
         try {
-            if (dataMediaSourceDo.getType().isMysql() || dataMediaSourceDo.getType().isOracle()|| dataMediaSourceDo.getType().isGreenplum()) {
+            if (dataMediaSourceDo.getType().isMysql() || dataMediaSourceDo.getType().isOracle() || dataMediaSourceDo.getType().isGreenplum()) {
                 dataMediaSource = JsonUtils.unmarshalFromString(dataMediaSourceDo.getProperties(), DbMediaSource.class);
-            } else if (dataMediaSourceDo.getType().isElasticSearch() ) {
-                dataMediaSource = JsonUtils.unmarshalFromString(dataMediaSourceDo.getProperties(), ElasticSearchMediaSource.class);
             } else if (dataMediaSourceDo.getType().isCassandra()) {
                 dataMediaSource = JsonUtils.unmarshalFromString(dataMediaSourceDo.getProperties(), CassandraMediaSource.class);
-            } else if (dataMediaSourceDo.getType().isHbase() ) {
+            } else if (dataMediaSourceDo.getType().isElasticSearch()) {
+                dataMediaSource = JsonUtils.unmarshalFromString(dataMediaSourceDo.getProperties(), ElasticSearchMediaSource.class);
+            } else if (dataMediaSourceDo.getType().isHbase()) {
                 dataMediaSource = JsonUtils.unmarshalFromString(dataMediaSourceDo.getProperties(), HBaseMediaSource.class);
-            } else if (dataMediaSourceDo.getType().isHDFSArvo() ) {
-                dataMediaSource = JsonUtils.unmarshalFromString(dataMediaSourceDo.getProperties(), HDFSMediaSource.class);
+            } else if (dataMediaSourceDo.getType().isElasticSearch()) {
+                dataMediaSource = JsonUtils.unmarshalFromString(dataMediaSourceDo.getProperties(), ElasticSearchMediaSource.class);
             } else if (dataMediaSourceDo.getType().isKafka()) {
                 dataMediaSource = JsonUtils.unmarshalFromString(dataMediaSourceDo.getProperties(), KafkaMediaSource.class);
-            }else if (dataMediaSourceDo.getType().isMq()) {
+            } else if (dataMediaSourceDo.getType().isNapoli() || dataMediaSourceDo.getType().isMq()) {
                 dataMediaSource = JsonUtils.unmarshalFromString(dataMediaSourceDo.getProperties(), MqMediaSource.class);
             }
+
             dataMediaSource.setId(dataMediaSourceDo.getId());
             dataMediaSource.setGmtCreate(dataMediaSourceDo.getGmtCreate());
             dataMediaSource.setGmtModified(dataMediaSourceDo.getGmtModified());
-            dataMediaSource.setPropertiesStr(dataMediaSourceDo.getProperties());
         } catch (Exception e) {
             logger.error("ERROR ## change the dataMediaSource Do to Model has an exception");
             throw new ManagerException(e);

@@ -32,6 +32,7 @@ import com.alibaba.otter.manager.web.common.model.SeniorDataMediaSource;
 import com.alibaba.otter.shared.common.model.config.data.DataMedia;
 import com.alibaba.otter.shared.common.model.config.data.DataMediaSource;
 import com.alibaba.otter.shared.common.model.config.data.db.DbMediaSource;
+import com.alibaba.otter.shared.common.model.config.data.kafka.KafkaMediaSource;
 import com.alibaba.otter.shared.common.model.config.data.mq.MqMediaSource;
 
 public class DataSourceList {
@@ -60,7 +61,40 @@ public class DataSourceList {
         condition.put("length", paginator.getLength());
 
         List<DataMediaSource> dataMediaSources = dataMediaSourceService.listByCondition(condition);
-        context.put("sources", dataMediaSources);
+//        List<SeniorDataMediaSource> seniorDataMediaSources = new ArrayList<SeniorDataMediaSource>();
+//        for (DataMediaSource dataMediaSource : dataMediaSources) {
+//
+//            SeniorDataMediaSource seniorDataMediaSource = new SeniorDataMediaSource();
+//            seniorDataMediaSource.setEncode(dataMediaSource.getEncode());
+//            seniorDataMediaSource.setGmtCreate(dataMediaSource.getGmtCreate());
+//            seniorDataMediaSource.setGmtModified(dataMediaSource.getGmtModified());
+//            seniorDataMediaSource.setId(dataMediaSource.getId());
+//            seniorDataMediaSource.setName(dataMediaSource.getName());
+//            seniorDataMediaSource.setType(dataMediaSource.getType());
+//            if (dataMediaSource instanceof DbMediaSource) {
+//                seniorDataMediaSource.setDriver(((DbMediaSource) dataMediaSource).getDriver());
+//                seniorDataMediaSource.setUrl(((DbMediaSource) dataMediaSource).getUrl());
+//                seniorDataMediaSource.setUsername(((DbMediaSource) dataMediaSource).getUsername());
+//            } else if (dataMediaSource instanceof MqMediaSource) {
+//               // seniorDataMediaSource.setUrl(((MqMediaSource) dataMediaSource).getUrl());
+//                //seniorDataMediaSource.setStorePath(((MqMediaSource) dataMediaSource).getStorePath());
+//            }else if(dataMediaSource instanceof KafkaMediaSource){
+//            	seniorDataMediaSource.setUrl(((DbMediaSource) dataMediaSource).getUrl());
+//                seniorDataMediaSource.setUsername(((DbMediaSource) dataMediaSource).getUsername());
+//            }
+//            List<DataMedia> dataMedia = dataMediaService.listByDataMediaSourceId(dataMediaSource.getId());
+//            seniorDataMediaSource.setDataMedias(dataMedia);
+//            if (dataMedia.size() < 1) {
+//                seniorDataMediaSource.setUsed(false);
+//            } else {
+//                seniorDataMediaSource.setUsed(true);
+//            }
+//            seniorDataMediaSources.add(seniorDataMediaSource);
+//
+//        }
+//
+//        context.put("sources", seniorDataMediaSources);
+        context.put("sources",dataMediaSources );
         context.put("paginator", paginator);
         context.put("searchKey", searchKey);
     }

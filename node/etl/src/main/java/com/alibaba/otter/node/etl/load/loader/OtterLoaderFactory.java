@@ -21,8 +21,11 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.otter.node.common.statistics.StatisticsClientService;
 import com.alibaba.otter.node.etl.load.loader.LoadStatsTracker.LoadCounter;
 import com.alibaba.otter.node.etl.load.loader.LoadStatsTracker.LoadThroughput;
@@ -40,7 +43,7 @@ import com.alibaba.otter.shared.etl.model.Identity;
  * @version 4.1.0
  */
 public class OtterLoaderFactory {
-
+	protected final Logger              logger  = LoggerFactory.getLogger(this.getClass());
     private DataBatchLoader         dataBatchLoader;
     private LoadStatsTracker        loadStatsTracker;
     private StatisticsClientService statisticsClientService;
@@ -49,6 +52,7 @@ public class OtterLoaderFactory {
         try {
             return dataBatchLoader.load(dbBatch);
         } finally {
+            logger.warn(String.format("after dataBatchLoader.load: %s ",JSON.toJSONString(dbBatch)));
             try {
                 sendStat(dbBatch.getRowBatch().getIdentity());
             } finally {

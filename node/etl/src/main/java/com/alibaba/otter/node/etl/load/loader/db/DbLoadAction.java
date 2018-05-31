@@ -352,7 +352,7 @@ public class DbLoadAction implements InitializingBean, DisposableBean {
         for (final EventData data : eventDatas) {
             DataMedia dataMedia = ConfigHelper.findDataMedia(context.getPipeline(), data.getTableId());
             final DbDialect dbDialect = dbDialectFactory.getDbDialect(context.getIdentity().getPipelineId(),
-                (DbMediaSource) dataMedia.getSource());
+                dataMedia.getSource());
             Boolean skipDdlException = context.getPipeline().getParameters().getSkipDdlException();
             try {
             	if (dbDialect.isNoSqlDB()) {
@@ -543,7 +543,7 @@ public class DbLoadAction implements InitializingBean, DisposableBean {
             EventData data = datas.get(0); // eventData为同一数据库的记录，只取第一条即可
              dataMedia = ConfigHelper.findDataMedia(context.getPipeline(), data.getTableId());
             dbDialect = dbDialectFactory.getDbDialect(context.getIdentity().getPipelineId(),
-                (DbMediaSource) dataMedia.getSource());
+               dataMedia.getSource());
 
         }
 

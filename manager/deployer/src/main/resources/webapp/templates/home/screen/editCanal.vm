@@ -106,11 +106,13 @@ $control.setTemplate("home:navigation.vm")
 		<tr> 
         <th width="300">数据源类型：</th>
         <td width="329">
-            <input type="radio" name="$canalParameterGroup.sourcingType.key" value="MYSQL" onclick="changeDisplay('mysqlSourcing','table-row');changeDisplay('oracleSourcing','none');changeDisplay('localSourcing','none');" id="RadioGroup5_0" #if($!canal.canalParameter.sourcingType.isMysql()) checked="checked" #end class="radio"/>mysql &nbsp;
+            <input type="radio" name="$canalParameterGroup.sourcingType.key" value="MYSQL" onclick="changeDisplay('mysqlSourcing','table-row');changeDisplay('kafkaSourcing','none');changeDisplay('oracleSourcing','none');changeDisplay('localSourcing','none');" id="RadioGroup5_0" #if($!canal.canalParameter.sourcingType.isMysql()) checked="checked" #end class="radio"/>mysql &nbsp;
+			<input type="radio" name="$canalParameterGroup.sourcingType.key" value="KAFKA" onclick="changeDisplay('mysqlSourcing','none');changeDisplay('kafkaSourcing','table-row');changeDisplay('localSourcing','none');" id="RadioGroup5_1" #if($!canal.canalParameter.sourcingType.isKafka()) checked="checked" #end class="radio"/>kafka &nbsp;
 			#**
-			<input type="radio" name="$canalParameterGroup.sourcingType.key" value="ORACLE" onclick="changeDisplay('mysqlSourcing','none');changeDisplay('oracleSourcing','table-row');changeDisplay('localSourcing','none');" id="RadioGroup5_1" #if($!canal.canalParameter.sourcingType.isOracle()) checked="checked" #end class="radio"/>oracle &nbsp;
+			<input type="radio" name="$canalParameterGroup.sourcingType.key" value="KAFKA" onclick="changeDisplay('mysqlSourcing','none');changeDisplay('oracleSourcing','table-row');changeDisplay('localSourcing','none');" id="RadioGroup5_1" #if($!canal.canalParameter.sourcingType.isOracle()) checked="checked" #end class="radio"/>oracle &nbsp;
+           
             <input type="radio" name="$canalParameterGroup.sourcingType.key" value="LOCALBINLOG" onclick="changeDisplay('mysqlSourcing','none');changeDisplay('oracleSourcing','none');changeDisplay('localSourcing','table-row');" id="RadioGroup5_2" #if($!canal.canalParameter.sourcingType.isLocalBinlog()) checked="checked" #end class="radio"/>localbinlog &nbsp;
-			*#
+		     *#
 			<br />
 			<span class="red">#editCanalMessage ($canalParameterGroup.sourcingType)</span>
 		</td>
@@ -121,7 +123,9 @@ $control.setTemplate("home:navigation.vm")
             <td width="329">
     			<textarea class="service" name="$canalParameterGroup.groupDbAddresses.key" cols="45" rows="5" >$!numberFormat.formatGroupDbAddress($canal.canalParameter.sourcingType,$canal.canalParameter.groupDbAddresses)</textarea><span class="red">*</span>
     			<br />
-    			<span>格式如 127.0.0.1:3306,127.0.0.1:3307;(必须以分号结束，逗号代表分组，可添多个)</span>
+    			<span>mysql格式如 127.0.0.1:3306,127.0.0.1:3307;(必须以分号结束，逗号代表分组，可添多个)</span>
+    			<br />
+    			<span>kafka格式如 127.0.0.1:9092;(必须以分号结束，可添多个)</span>
     			<br />
     			<span class="red">#editCanalMessage ($canalParameterGroup.groupDbAddresses)</span>
     		</td>
@@ -150,7 +154,7 @@ $control.setTemplate("home:navigation.vm")
     			<span class="red">#editCanalMessage ($canalParameterGroup.connectionCharset)</span>
     		</td>
           </tr>
-		 #**
+		 
 		 <tr class="mysqlSourcing"> 
             <th width="300">链接到mysql的slaveId：</th>
             <td width="329">
@@ -159,8 +163,11 @@ $control.setTemplate("home:navigation.vm")
     			<span class="red">#editCanalMessage ($canalParameterGroup.slaveId)</span>
     		</td>
           </tr>
-		  *#
+		  
+		  
+		  
 		  <input type="hidden" name="$canalParameterGroup.slaveId.key" value="$!canal.canalParameter.slaveId" />
+		  
 		  <tr class="localSourcing">
             <th width="300">本地localBinlog目录：</th>
             <td width="329">
@@ -169,6 +176,16 @@ $control.setTemplate("home:navigation.vm")
     			<span class="red">#editCanalMessage ($canalParameterGroup.localBinlogDirectory)</span>
     		</td>
           </tr>
+          
+          <tr class="kafkaSourcing">
+            <th width="300">kafka的topic列表：</th>
+            <td width="329">
+                <input type="text" name="$canalParameterGroup.kafkaTopicList.key" value="$!canal.canalParameter.kafkaTopicList" class="setting_input"/><span class="red">*</span>
+    			<br />
+    			<span class="red">#editCanalMessage ($canalParameterGroup.kafkaTopicList)</span>
+    		</td>
+          </tr>
+          
 	  </div>
 	  
 	  <div id="positionConfig">
@@ -433,18 +450,9 @@ $control.setTemplate("home:navigation.vm")
 	 <tr>
        <th>过滤表达式：</th>
        <td>
-    		<textarea cols="80" rows="5" name="$canalParameterGroup.blackFilter.key">$!canal.canalParameter.blackFilter</textarea><span class="red">*</span>
+    		<textarea cols="45" rows="5" name="$canalParameterGroup.blackFilter.key">$!canal.canalParameter.blackFilter</textarea><span class="red">*</span>
     		<br />
-    		<span class="red">mysql 数据解析关注的表，Perl正则表达式.<br/>
-多个正则之间以逗号(,)分隔，转义符需要双斜杠(\\)<br/>
-
-常见例子：<br/>
-1.  所有表：.*   or  .*\\..*<br/>
-2.  canal schema下所有表： canal\\..*<br/>
-3.  canal下的以canal打头的表：canal\\.canal.*<br/>
-4.  canal schema下的一张表：canal.test1<br/>
-5.  多个规则组合使用：canal\\..*,mysql.test1,mysql.test2 (逗号分隔)<br/>
-    		#editCanalMessage ($canalParameterGroup.blackFilter)</span>
+    		<span class="red">#editCanalMessage ($canalParameterGroup.blackFilter)</span>
 	   </td>
       </tr>
 	  <tr>
@@ -468,6 +476,12 @@ $control.setTemplate("home:navigation.vm")
 		changeDisplay('mysqlSourcing','table-row')
 	#else
 		changeDisplay('mysqlSourcing','none')
+	#end
+	
+	#if($!canal.canalParameter.sourcingType.isKafka())
+		changeDisplay('kafkaSourcing','table-row')
+	#else
+		changeDisplay('kafkaSourcing','none')
 	#end
 
 	#if($!canal.canalParameter.sourcingType.isOracle())

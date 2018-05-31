@@ -91,6 +91,8 @@ public class CanalEmbedSelector implements OtterSelector {
     public CanalEmbedSelector(Long pipelineId){
         this.pipelineId = pipelineId;
         canalServer = new CanalServerWithEmbedded();
+//        Canal canal = canalConfigClient.findCanal(destination);
+//        canal.getCanalParameter().getDbAddresses();
     }
 
     public boolean isStart() {

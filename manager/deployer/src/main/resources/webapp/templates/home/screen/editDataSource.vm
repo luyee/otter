@@ -6,27 +6,6 @@ $control.setTemplate("home:navigation.vm")
 <script language="javascript">
 <!--
 	changeNav("datamedia");
-
-function changeform(){
-	if ($("#sourceType").val()=='KAFKA'){
-		$("#dsUrl").html("zookeeper hosts:");
-	}else if ($("#sourceType").val()=='HBASE'){
-		$("#dsUrl").html("hbase-site:");
-	}else if ($("#sourceType").val()=='ELASTICSEARCH'){
-		$("#dsUrl").html("hosts:");
-	}else if ($("#sourceType").val()=='CASSANDRA'){
-		$("#dsUrl").html("url:");
-	}else if ($("#sourceType").val()=='HDFS-ARVO'){
-		$("#dsUrl").html("hdfs-site:");
-	}else if ($("#sourceType").val()=='MYSQL'){
-		$("#dsUrl").html("url:");
-	}else if ($("#sourceType").val()=='ORACLE'){
-		$("#dsUrl").html("url:");
-	}else if (addSourceForm.sourceType.value=='GREENPLUM'){
-		$("#dsUrl").html("url:");
-	}
-}
-changeform();
 //-->
 </script>
 #macro (editDataSourceMessage $field)
@@ -49,12 +28,12 @@ changeform();
 	#set ($dataMediaSourceGroup = $form.dataMediaSourceInfo.defaultInstance)
 	<input type="hidden" name="$dataMediaSourceGroup.id.key" value="$source.id" />
     <input type="hidden" name="dataMediaSourceId" value="$source.id" />
-	<table cellpadding="0" cellspacing="0" class="setting_otter" width="100%">
+	<table cellpadding="0" cellspacing="0" class="setting_otter">
         <span class="red">#editDataSourceMessage ($dataMediaSourceGroup.formDataMediaSourceError)</span>
       <tr> 
         <th width="300">数据源名字：</th>
         <td width="329">
-			<input name="$dataMediaSourceGroup.name.key" id="sourceName" type="text" value="$source.name" class="setting_input"/><span class="red">*</span>
+			<input name="$dataMediaSourceGroup.name.key" type="text" value="$source.name" class="setting_input"/><span class="red">*</span>
 			<br />
 			<span class="red">#editDataSourceMessage ($dataMediaSourceGroup.name)</span>
 		</td>
@@ -63,15 +42,14 @@ changeform();
       <tr> 
         <th>类型：</th>
         <td>
-            <select id="sourceType" name="$dataMediaSourceGroup.type.key"  onchange="changeform();">			
-            	<option value="KAFKA" #if($source.type.isKafka()) selected="selected" #end>KAFKA</option>
-            	<option value="MetaQ" #if($source.type.isMq()) selected="selected" #end>MetaQ</option>
-            	<option value="HBASE" #if($source.type.isHBase()) selected="selected" #end>HBASE</option>
-            	<option value="ELASTICSEARCH" #if($source.type.isElasticSearch()) selected="selected" #end>ELASTICSEARCH</option>
-            	<option value="CASSANDRA" #if($source.type.isCassandra()) selected="selected" #end>CASSANDRA</option>
+            <select id="sourceType" name="$dataMediaSourceGroup.type.key">			
 				<option value="MYSQL" #if($source.type.isMysql()) selected="selected" #end>MySQL</option>
 				<option value="ORACLE" #if($source.type.isOracle()) selected="selected" #end>Oracle</option>
-				<option value="GREENPLUM" #if($source.type.isGreenPlum()) selected="selected" #end>GREENPLUM</option>
+				<option value="KAFKA" #if($source.type.isKafka()) selected="selected" #end>KAFKA</option>
+            <option value="HBASE" #if($source.type.isHbase()) selected="selected" #end>HBASE</option>
+            <option value="ELASTICSEARCH" #if($source.type.isElasticSearch()) selected="selected" #end>ELASTICSEARCH</option>
+            <option value="CASSANDRA" #if($source.type.isCassandra()) selected="selected" #end>CASSANDRA</option>
+            <option value="GREENPLUM" #if($source.type.isGreenplum()) selected="selected" #end>GREENPLUM</option>
 			</select><span class="red">*</span>
         </td>
 	  </tr>
@@ -92,7 +70,7 @@ changeform();
 		</td>
       </tr>
 	  <tr> 
-        <th  id="dsUrl" >URL：</th>
+        <th>URL：</th>
         <td>
 			<input id="sourceUrl" name="$dataMediaSourceGroup.url.key" value="$source.url" type="text" class="setting_input"/><span class="red">*</span>
 			<br />
@@ -135,7 +113,7 @@ changeform();
 			HBASE例子 :/home/da/hbase-site.xml<br/>
 			ELASTICSEARCH例子 :test74:9300;test75:9300;test76:9300||clustername||indexname<br/>
 			CASSANDRA例子 :test75:2688;test76:2688<br/>
-			HDFS-ARVO例子 :/home/da/hdfs-site.xml||hdfs://test74:8020/Users/data/<br/>
+			GreenPLUM例子:
 			media例子 : jdbc:mysql://groupKey=key (更改 key)
 		</td> 
       </tr>

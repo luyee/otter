@@ -32,6 +32,8 @@ import com.alibaba.citrus.turbine.dataresolver.FormField;
 import com.alibaba.citrus.turbine.dataresolver.FormGroup;
 import com.alibaba.citrus.turbine.dataresolver.Param;
 import com.alibaba.citrus.webx.WebxException;
+import com.alibaba.dubbo.common.json.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.otter.canal.instance.manager.model.Canal;
 import com.alibaba.otter.canal.instance.manager.model.CanalParameter;
 import com.alibaba.otter.canal.instance.manager.model.CanalParameter.DataSourcing;
@@ -41,7 +43,11 @@ import com.alibaba.otter.manager.biz.config.canal.CanalService;
 import com.alibaba.otter.manager.biz.config.pipeline.PipelineService;
 import com.alibaba.otter.manager.web.common.WebConstant;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class CanalAction extends AbstractAction {
+	private static final Logger     logger           = LoggerFactory.getLogger(CanalAction.class);
 
     @Resource(name = "canalService")
     private CanalService    canalService;
@@ -61,6 +67,8 @@ public class CanalAction extends AbstractAction {
         CanalParameter parameter = new CanalParameter();
         canalInfo.setProperties(canal);
         canalParameterInfo.setProperties(parameter);
+        System.out.println(String.format("canalParameterInfo: %s", com.alibaba.fastjson.JSON.toJSONString(canalParameterInfo)));
+        System.out.println(String.format("parameter: %s", com.alibaba.fastjson.JSON.toJSONString(parameter)));
 
         String zkClustersString = canalParameterInfo.getField("zkClusters").getStringValue();
         String[] zkClusters = StringUtils.split(zkClustersString, ";");
@@ -112,7 +120,7 @@ public class CanalAction extends AbstractAction {
             err.setMessage("invalidCanal");
             return;
         }
-
+        System.out.println("SourcingType: "+parameter.getSourcingType());
         if (parameter.getSourcingType().isMysql() && parameter.getSlaveId() == null) {
             parameter.setSlaveId(10000 + canal.getId());
             // 再次更新一下slaveId

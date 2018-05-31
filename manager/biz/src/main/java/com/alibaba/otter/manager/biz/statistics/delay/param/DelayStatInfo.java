@@ -49,35 +49,7 @@ public class DelayStatInfo implements Serializable {
         Double avgDelayTime = 0.0;
         if (items.size() != 0) {
             for (DelayStat item : items) {
-            	if (item!=null && item.getDelayTime()!=null){
-            		avgDelayTime += item.getDelayTime();
-            	}
-            }
-            avgDelayTime = avgDelayTime / items.size();
-        }
-        return avgDelayTime;
-    }
-    
-    public Double getAvgMaxDelayTime() {
-        Double avgDelayTime = 0.0;
-        if (items.size() != 0) {
-            for (DelayStat item : items) {
-            	if (item!=null && item.getMaxDelayTime()!=null){
-                    avgDelayTime += item.getMaxDelayTime();
-            	}
-            }
-            avgDelayTime = avgDelayTime / items.size();
-        }
-        return avgDelayTime;
-    }
-    
-    public Double getAvgMinDelayTime() {
-        Double avgDelayTime = 0.0;
-        if (items.size() != 0) {
-            for (DelayStat item : items) {
-            	if (item!=null && item.getMinDelayTime()!=null){
-            		avgDelayTime += item.getMinDelayTime();
-            	}
+                avgDelayTime += item.getDelayTime();
             }
             avgDelayTime = avgDelayTime / items.size();
         }

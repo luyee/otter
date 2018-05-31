@@ -13,13 +13,6 @@
 	<url>http://github.com/alibaba/otter</url>
 
 	<dependencies>
-	<dependency>
-            <groupId>jdk.tools</groupId>
-            <artifactId>jdk.tools</artifactId>
-            <version>1.8</version>
-            <scope>system</scope>
-            <systemPath>${JAVA_HOME}/lib/tools.jar</systemPath>
-</dependency>
 		<dependency>
 			<groupId>com.alibaba.otter</groupId>
 			<artifactId>shared.common</artifactId>
@@ -91,6 +84,10 @@
 			<artifactId>hbase-shaded-server</artifactId>
 			<exclusions>
 				<exclusion>
+				 	<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-log4j12</artifactId>
+				</exclusion>
+				<exclusion>
 					<groupId>tomcat</groupId>
 					<artifactId>jasper-runtime</artifactId>
 				</exclusion>
@@ -156,6 +153,10 @@
 			<artifactId>hadoop-common</artifactId>
 			<exclusions>
 				<exclusion>
+          			<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-log4j12</artifactId>
+        		</exclusion>
+				<exclusion>
 					<artifactId>guava</artifactId>
 					<groupId>com.google.guava</groupId>
 				</exclusion>
@@ -181,6 +182,12 @@
 		<dependency>
 			<groupId>org.apache.kafka</groupId>
 			<artifactId>kafka_2.11</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-log4j12</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
   <groupId>com.alibaba.rocketmq</groupId>

@@ -18,6 +18,8 @@ package com.alibaba.otter.node.etl.extract.extractor;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
@@ -32,6 +34,7 @@ import com.alibaba.otter.shared.etl.model.DbBatch;
  * @version 4.0.2
  */
 public class OtterExtractorFactory implements BeanFactoryAware {
+    protected final Logger              logger  = LoggerFactory.getLogger(this.getClass());
 
     private List        dbBatchExtractor;
     private BeanFactory beanFactory;
@@ -46,7 +49,7 @@ public class OtterExtractorFactory implements BeanFactoryAware {
             } else {
                 otterExtractor = (OtterExtractor) extractor;
             }
-
+            logger.warn("otterExtractor: "+ otterExtractor.getClass().getName());
             otterExtractor.extract(dbBatch);
         }
     }

@@ -34,6 +34,8 @@ import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.alibaba.otter.node.etl.common.datasource.DataSourceService;
+import com.alibaba.otter.node.etl.common.db.dialect.kafka.KafkaDialect;
+import com.alibaba.otter.shared.common.model.config.data.DataMediaSource;
 import com.alibaba.otter.shared.common.model.config.data.db.DbMediaSource;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -52,16 +54,16 @@ public class DbDialectFactory implements DisposableBean {
     private DbDialectGenerator                       dbDialectGenerator;
 
  // 第一层pipelineId , 第二层DbMediaSource id
- 	private LoadingCache<Long, LoadingCache<DbMediaSource, DbDialect>> dialects;
+ 	private LoadingCache<Long, LoadingCache<DataMediaSource, DbDialect>> dialects;
  	
     public DbDialectFactory(){
         // 构建第一层map
-    			CacheBuilder<Long, LoadingCache<DbMediaSource, DbDialect>> cacheBuilder = CacheBuilder.newBuilder().maximumSize(1000)
-    					.softValues().removalListener(new RemovalListener<Long, LoadingCache<DbMediaSource, DbDialect>>() {
+    			CacheBuilder<Long, LoadingCache<DataMediaSource, DbDialect>> cacheBuilder = CacheBuilder.newBuilder().maximumSize(1000)
+    					.softValues().removalListener(new RemovalListener<Long, LoadingCache<DataMediaSource, DbDialect>>() {
 
     						@Override
     						public void onRemoval(
-    								RemovalNotification<Long, LoadingCache<DbMediaSource, DbDialect>> paramRemovalNotification) {
+    								RemovalNotification<Long, LoadingCache<DataMediaSource, DbDialect>> paramRemovalNotification) {
     							if (paramRemovalNotification.getValue() == null) {
     								return;
     							}
@@ -73,15 +75,19 @@ public class DbDialectFactory implements DisposableBean {
     					});
 
 
-        dialects =cacheBuilder.build(new CacheLoader<Long, LoadingCache<DbMediaSource, DbDialect>>() {
+        dialects =cacheBuilder.build(new CacheLoader<Long, LoadingCache<DataMediaSource, DbDialect>>() {
 
-            public LoadingCache<DbMediaSource, DbDialect> load(final Long pipelineId) {
+            public LoadingCache<DataMediaSource, DbDialect> load(final Long pipelineId) {
                 // 构建第二层map
                 return CacheBuilder.newBuilder().maximumSize(1000)
-						.build(new CacheLoader<DbMediaSource, DbDialect>() {
+						.build(new CacheLoader<DataMediaSource, DbDialect>() {
 
                     @SuppressWarnings("unchecked")
-					public DbDialect load(final DbMediaSource source) {
+					public DbDialect load(final DataMediaSource source) {
+                    	if(source.getType().isKafka()){
+                    		KafkaDialect kafkaDialect = new KafkaDialect(dataSourceService.getDataSource(pipelineId, source), "", 0, 0);
+                    		return kafkaDialect;
+                    	}
                         DataSource dataSource = dataSourceService.getDataSource(pipelineId, source);
                         final JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
                         return (DbDialect) jdbcTemplate.execute(new ConnectionCallback() {
@@ -118,8 +124,9 @@ public class DbDialectFactory implements DisposableBean {
         });
 
     }
-
-    public DbDialect getDbDialect(Long pipelineId, DbMediaSource source) {
+    
+   // public DbDialect getDbDialect(Long pipelineId, DataMediaSource source) {
+    	public DbDialect getDbDialect(Long pipelineId, DataMediaSource source) {
         try {
 			return dialects.get(pipelineId).get(source);
 		} catch (ExecutionException e) {
@@ -130,7 +137,7 @@ public class DbDialectFactory implements DisposableBean {
 
     public void destory(Long pipelineId) {
 		try {
-			LoadingCache<DbMediaSource, DbDialect>  dialect = dialects.get(pipelineId);
+			LoadingCache<DataMediaSource, DbDialect>  dialect = dialects.get(pipelineId);
 			if (dialect != null) {
 	            for (DbDialect dbDialect : dialect.asMap().values()) {
 	                dbDialect.destory();

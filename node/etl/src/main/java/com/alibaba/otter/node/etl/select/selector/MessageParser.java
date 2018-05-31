@@ -440,7 +440,7 @@ public class MessageParser {
                 // 获取一下目标库的拆分字段,设置源表为主键
                 // 首先要求源和目标的库名表名是一致的
                 DbDialect targetDbDialect = dbDialectFactory.getDbDialect(pipeline.getId(),
-                    (DbMediaSource) targetDataMedia.getSource());
+                    targetDataMedia.getSource());
                 if (targetDbDialect.isDRDS()) {
                     String schemaName = buildName(eventData.getSchemaName(),
                         dataMedia.getNamespaceMode(),

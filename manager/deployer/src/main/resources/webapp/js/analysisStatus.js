@@ -36,7 +36,7 @@ function delayFormat(val, axis) {
       return val.toFixed(axis.tickDecimals) + " ms"; 
 }
     
-    function drawDelayGraph(id,flotData,flotMaxTime,flotMinTime) {
+    function drawDelayGraph(id,flotData) {
         var delayOptions = {
 		legend: {
                         show: true,
@@ -62,23 +62,19 @@ function delayFormat(val, axis) {
         };
         if (($(id).width() !== 0) && ($(id).height() !== 0)) {
             $.plot($(id), [{
-            	label: "平均值", data: flotData
-            },
-            {label: "最大值",data: flotMaxTime},
-            {label: "最小值",data: flotMinTime}], delayOptions);
+                data: flotData
+            }], delayOptions);
         }
     }
 
 
-    function createDelayStatFlash(flotTime,flotMaxTime,flotMinTime) {
+    function createDelayStatFlash(flotTime) {
         if (($("#delayTime").width() !== 0) && ($("#delayTime").height() !== 0)) {
             $.plot($("#delayTime"), [{
                 data: [[0, 0]]
             }]);
         } 
-        drawDelayGraph("#delayTime",flotTime,flotMaxTime,flotMinTime);
-       // drawDelayGraph("#delayTime",flotMaxTime);
-      //  drawDelayGraph("#delayTime",flotMinTime);
+        drawDelayGraph("#delayTime",flotTime);
     }
     
     function doPlot(position,flotNumber,flotTime) {

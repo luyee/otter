@@ -25,8 +25,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.otter.shared.arbitrate.impl.config.ArbitrateConfigUtils;
 import com.alibaba.otter.shared.arbitrate.impl.setl.ArbitrateLifeCycle;
 import com.alibaba.otter.shared.arbitrate.impl.setl.helper.ReplyProcessQueue;
@@ -45,6 +48,7 @@ import com.google.common.collect.MapMaker;
  * @version 4.1.0
  */
 public class MemoryStageController extends ArbitrateLifeCycle {
+    private static final Logger     logger           = LoggerFactory.getLogger(MemoryStageController.class);
 
 	private AtomicLong atomicMaxProcessId = new AtomicLong(0);
 	private LoadingCache<StageType, ReplyProcessQueue> replys;
@@ -141,8 +145,10 @@ public class MemoryStageController extends ArbitrateLifeCycle {
 			switch (stage) {
 			case SELECT:
 				if (progress.containsKey(etlEventData.getProcessId())) {// 可能发生了rollback，对应的progress已经被废弃
+					logger.warn(String.format("start put %s ", JSON.toJSONString(etlEventData)));
 					progress.put(etlEventData.getProcessId(), new StageProgress(stage, etlEventData));
 					replys.get(StageType.EXTRACT).offer(etlEventData.getProcessId());
+					logger.warn(String.format("end put %s ", JSON.toJSONString(etlEventData)));
 					result = true;
 				}
 				break;

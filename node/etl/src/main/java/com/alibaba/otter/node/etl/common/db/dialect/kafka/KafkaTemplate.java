@@ -12,6 +12,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.otter.node.etl.common.db.dialect.NoSqlTemplate;
 import com.alibaba.otter.node.etl.common.db.utils.SqlUtils;
 import com.alibaba.otter.node.etl.load.exception.ConnClosedException;
@@ -33,15 +34,19 @@ public class KafkaTemplate implements NoSqlTemplate {
 	private EventData sendMessage(EventData event) throws ConnClosedException {
 		String pkVal = SqlUtils.getPriKey(event);
 		try {
+			logger.warn(String.format("start to send %s", mapper.writeValueAsString(event)));
 			event.setLoadDataTime(System.currentTimeMillis());
 			if (event.getEventType().isDdl()){
+				//mapper.writeValueAsString(event)
 				producer.send(new ProducerRecord(event.getSchemaName()+"_DDL",pkVal,mapper.writeValueAsString(event)),new EventCallBack(event));
 			}
 			producer.send(new ProducerRecord(event.getSchemaName(),pkVal,mapper.writeValueAsString(event)),new EventCallBack(event));
 			logger.info("kafka消息发送完毕时间: event time:"+new Timestamp(event.getExecuteTime())+"  当前时间:"+new Timestamp(System.currentTimeMillis()));
 		}catch(IllegalStateException ise){
+			logger.warn(String.format("send msg fail: %s", ise));
 			throw new ConnClosedException(ise.getMessage());
 		} catch (IOException e) {
+			logger.warn(String.format("send msg fail: %s", e));
 			e.printStackTrace();
 		}
 		return event;

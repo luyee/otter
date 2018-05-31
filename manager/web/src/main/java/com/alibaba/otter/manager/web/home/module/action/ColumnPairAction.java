@@ -21,8 +21,6 @@ import java.util.List;
 
 import javax.annotation.Resource;
 
-import org.apache.hadoop.hbase.shaded.org.apache.commons.lang.math.NumberUtils;
-
 import com.alibaba.citrus.service.form.CustomErrors;
 import com.alibaba.citrus.service.form.Group;
 import com.alibaba.citrus.turbine.Navigator;
@@ -62,7 +60,7 @@ public class ColumnPairAction extends AbstractAction {
         List<String> sourceColumnNames = new ArrayList<String>();
         List<String> targetColumnNames = new ArrayList<String>();
         for (String sourceColumn : sourceColumns) {
-            sourceColumnNames.add(org.apache.commons.lang.StringUtils.split(sourceColumn,":")[0]);
+            sourceColumnNames.add(sourceColumn);
         }
 
         for (String targetColumn : targetColumns) {
@@ -71,8 +69,7 @@ public class ColumnPairAction extends AbstractAction {
 
         DataMedia targetMedia = dataMediaPairService.findById(dataMediaPairId).getTarget();
 
-        if (!(targetMedia.getSource().getType().isNapoli() || targetMedia.getSource().getType().isElasticSearch() 
-        		|| targetMedia.getSource().getType().isHbase()||targetMedia.getSource().getType().isKafka()||targetMedia.getSource().getType().isHDFSArvo()) && sourceColumnNames.size() != targetColumnNames.size()) {
+        if (!targetMedia.getSource().getType().isNapoli() && sourceColumnNames.size() != targetColumnNames.size()) {
             err.setMessage("invalidColumnPair");
             return;
         }
@@ -101,8 +98,7 @@ public class ColumnPairAction extends AbstractAction {
                 columnPair.setDataMediaPairId(dataMediaPairId);
                 columnPairs.add(columnPair);
             }
-        } else if (targetMedia.getSource().getType().isMysql() || targetMedia.getSource().getType().isOracle()
-        		|| targetMedia.getSource().getType().isGreenplum()||targetMedia.getSource().getType().isCassandra()) {
+        } else if (targetMedia.getSource().getType().isMysql() || targetMedia.getSource().getType().isOracle()) {
             for (ColumnPair columnPair : columnPairsInDb) {
                 int i = 0;
                 for (String sourceColumnName : sourceColumnNames) {
@@ -121,67 +117,13 @@ public class ColumnPairAction extends AbstractAction {
             targetColumnNames.removeAll(columnPairsNameTarget);
 
             int i = 0;
-            for (String column :sourceColumns ) {
-            	String[] cs=org.apache.commons.lang.StringUtils.split(column,":");
-	            for (String columnName : sourceColumnNames) {
-	            	if (org.apache.commons.lang.StringUtils.equalsIgnoreCase(cs[0], columnName)){
-		                ColumnPair columnPair = new ColumnPair();
-		                columnPair.setSourceColumn(new Column(columnName));
-		                if (cs.length==3){
-                        	columnPair.setIsPk(NumberUtils.toInt(cs[1]));
-                        	columnPair.setFunctionName(cs[2]);
-                        }
-		                columnPair.setTargetColumn(new Column(targetColumnNames.get(i)));
-		                columnPair.setDataMediaPairId(dataMediaPairId);
-		                columnPairs.add(columnPair);
-		                i++;
-		                break;
-	            	}
-	            }
-            }
-        }else{
-        	//获取已经配置在数据库中的字段映射
-        	for (ColumnPair columnPair : columnPairsInDb) {
-                int i = 0;
-                for (String sourceColumnName : sourceColumnNames) {
-                    if (StringUtils.isEquals(columnPair.getSourceColumn().getName(), sourceColumnName)
-                        && StringUtils.isEquals(columnPair.getTargetColumn().getName(), targetColumnNames.get(i))) {
-                        columnPairsTemp.add(columnPair);
-                        columnPairsNameSource.add(sourceColumnName);
-                        columnPairsNameTarget.add(targetColumnNames.get(i));
-                    }
-                    i++;
-                }
-            }
-            // 要从数据库中删除这些已经配置的columnPair
-            columnPairsInDb.removeAll(columnPairsTemp);
-            sourceColumnNames.removeAll(columnPairsNameSource);
-            targetColumnNames.removeAll(columnPairsNameTarget);
-
-            int i = 0;
-            for (String column :sourceColumns ) {
-            	String[] cs=org.apache.commons.lang.StringUtils.split(column,":");
-            	for (String columnName :sourceColumnNames){
-            		if (org.apache.commons.lang.StringUtils.equalsIgnoreCase(cs[0], columnName)){
-            			ColumnPair columnPair = new ColumnPair();
-                        //设置主键函数信息
-                        columnPair.setSourceColumn(new Column(columnName));
-                        if (cs.length==3){
-                        	columnPair.setIsPk(NumberUtils.toInt(cs[1]));
-                        	columnPair.setFunctionName(cs[2]);
-                        }
-                        //非关系数据库和cassanddra,没有目标方的字段自动建立同名字段
-                        if (targetColumnNames.size()>=i+1){
-                        	columnPair.setTargetColumn(new Column(targetColumnNames.get(i)));
-                        }else{
-                        	columnPair.setTargetColumn(new Column(columnName));
-                        }
-                        columnPair.setDataMediaPairId(dataMediaPairId);
-                        columnPairs.add(columnPair);
-                        i++;
-                        break;
-            		}
-            	}
+            for (String columnName : sourceColumnNames) {
+                ColumnPair columnPair = new ColumnPair();
+                columnPair.setSourceColumn(new Column(columnName));
+                columnPair.setTargetColumn(new Column(targetColumnNames.get(i)));
+                columnPair.setDataMediaPairId(dataMediaPairId);
+                columnPairs.add(columnPair);
+                i++;
             }
         }
 

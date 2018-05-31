@@ -252,7 +252,8 @@ public class OtterController implements NodeTaskListener, OtterControllerMBean {
 
 	private void initNid() {
 		// 获取一下nid变量
-		String nid = System.getProperty(OtterConstants.NID_NAME);
+	//	String nid = System.getProperty(OtterConstants.NID_NAME);
+		String nid ="1";
 		if (StringUtils.isEmpty(nid)) {
 			throw new ConfigException("nid is not set!");
 		}

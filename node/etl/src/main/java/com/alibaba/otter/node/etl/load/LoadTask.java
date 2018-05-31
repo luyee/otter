@@ -20,6 +20,7 @@ import java.util.List;
 
 import org.slf4j.MDC;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.otter.node.etl.OtterConstants;
 import com.alibaba.otter.node.etl.common.jmx.StageAggregation.AggregationItem;
 import com.alibaba.otter.node.etl.common.pipe.PipeKey;
@@ -52,7 +53,10 @@ public class LoadTask extends GlobalTask {
         MDC.put(OtterConstants.splitPipelineLogFileKey, String.valueOf(pipelineId));
         while (running) {
             try {
+            	logger.warn("start await");
                 final EtlEventData etlEventData = arbitrateEventService.loadEvent().await(pipelineId);
+            	logger.warn("start await etlEventData" + JSON.toJSONString(etlEventData));
+
                 Runnable task = new Runnable() {
 
                     public void run() {
@@ -70,7 +74,9 @@ public class LoadTask extends GlobalTask {
                         try {
                             // 后续可判断同步数据是否为rowData
                             List<PipeKey> keys = (List<PipeKey>) etlEventData.getDesc();
+                            logger.warn("start to get dbBatch keys: " +JSON.toJSONString(keys));
                             DbBatch dbBatch = rowDataPipeDelegate.get(keys);
+                            logger.warn("start to get dbBatch dbBatch: " +JSON.toJSONString(dbBatch));
 
                             // 可能拿到为null，因为内存不足或者网络异常，长时间阻塞时，导致从pipe拿数据出现异常，数据可能被上一个节点已经删除
                             if (dbBatch == null) {

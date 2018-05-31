@@ -21,6 +21,7 @@ import java.util.Map;
 
 import org.slf4j.MDC;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.otter.node.etl.OtterConstants;
 import com.alibaba.otter.node.etl.common.jmx.StageAggregation.AggregationItem;
 import com.alibaba.otter.node.etl.common.pipe.PipeKey;
@@ -54,7 +55,10 @@ public class TransformTask extends GlobalTask {
         MDC.put(OtterConstants.splitPipelineLogFileKey, String.valueOf(pipelineId));
         while (running) {
             try {
+            	logger.warn("start await " );
                 final EtlEventData etlEventData = arbitrateEventService.transformEvent().await(pipelineId);
+            	logger.warn("start await etlEventData "+JSON.toJSONString(etlEventData));
+
                 Runnable task = new Runnable() {
 
                     @Override
@@ -73,7 +77,10 @@ public class TransformTask extends GlobalTask {
                         try {
                             // 后续可判断同步数据是否为rowData
                             List<PipeKey> keys = (List<PipeKey>) etlEventData.getDesc();
+                        	logger.warn("start get dbBatch keys:  "+JSON.toJSONString(keys));
+
                             DbBatch dbBatch = rowDataPipeDelegate.get(keys);
+                        	logger.warn("start get dbBatch dbBatch:  "+JSON.toJSONString(dbBatch));
 
                             // 可能拿到为null，因为内存不足或者网络异常，长时间阻塞时，导致从pipe拿数据出现异常，数据可能被上一个节点已经删除
                             if (dbBatch == null) {
@@ -83,8 +90,10 @@ public class TransformTask extends GlobalTask {
 
                             // 根据对应的tid，转化为目标端的tid。后续可进行字段的加工处理
                             // 暂时认为rowBatchs和fileBatchs不会有异构数据的转化
-                            Map<Class, BatchObject> dataBatchs = otterTransformerFactory.transform(dbBatch.getRowBatch());
+                            logger.warn("before transform dbBatch: "+JSON.toJSONString(dbBatch));
 
+                            Map<Class, BatchObject> dataBatchs = otterTransformerFactory.transform(dbBatch.getRowBatch());
+                            logger.warn("after transform dataBatchs: "+JSON.toJSONString(dataBatchs));
                             // 可能存在同一个Pipeline下有Mq和Db两种同步类型
                             dbBatch.setRowBatch((RowBatch) dataBatchs.get(EventData.class));
 

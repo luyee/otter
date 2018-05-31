@@ -80,13 +80,11 @@ $control.setTemplate("home:navigation.vm")
 			<th width="3%">并行度</th>
 			<th width="3%">主站点</th>
 			<th width="5%">mainstem状态</th>
-			<th width="6%">延迟时间</th>
-			<th width="6%">最小延迟时间</th>
-			<th width="6%">最大延迟时间</th>
-			<th width="7%">最后同步时间</th>
-			<th width="7%">最后位点时间</th>
+			<th width="5%">延迟时间</th>
+			<th width="8%">最后同步时间</th>
+			<th width="8%">最后位点时间</th>
 			<th width="3%">监控数</th>
-        	<th width="10%">操作</th>
+        	<th width="20%">操作</th>
           </tr>
           <tr> 
 			#foreach ($pipeline in $pipelines)
@@ -117,13 +115,11 @@ $control.setTemplate("home:navigation.vm")
     		#end
 		#end
 	  </td>
-	  <td width="6%">$!numberFormat.formatDelay($delayStats.get($pipeline.id).delayTime)</td>
-	  <td width="6%">$!numberFormat.formatDelay($delayStats.get($pipeline.id).minDelayTime)</td>
-	  <td width="6%">$!numberFormat.formatDelay($delayStats.get($pipeline.id).maxDelayTime)</td>
+	  <td width="5%">$!numberFormat.formatDelay($delayStats.get($pipeline.id).delayTime)</td>
 	  #set($throughputStat = $throughputStats.get($pipeline.id))
-	  <td width="7%">$!numberFormat.format($!throughputStat.gmtModified)</td>
+	  <td width="8%">$!numberFormat.format($!throughputStat.gmtModified)</td>
 	  #set($positionData = $positionDatas.get($pipeline.id))
-	  <td width="7%">$!numberFormat.format($!positionData.modifiedTime)</td>
+	  <td width="8%">$!numberFormat.format($!positionData.modifiedTime)</td>
 	  <td width="3%">$alarmRuleStats.get($pipeline.id).size()</td>
 	  <td>
 		#set ($pipelineInfoURL = $homeModule.setTarget("pipelineInfo.vm").addQueryData("pipelineId", $pipeline.id))

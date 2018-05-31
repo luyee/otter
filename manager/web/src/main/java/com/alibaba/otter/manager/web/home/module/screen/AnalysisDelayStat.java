@@ -67,6 +67,7 @@ public class AnalysisDelayStat {
         for (DelayStatInfo info : delayStatInfos.values()) {
             delayAvg += info.getAvgDelayTime();
         }
+
         if (delayStatInfos.size() != 0) {
             delayAvg = delayAvg / (1.0 * delayStatInfos.size());
         }

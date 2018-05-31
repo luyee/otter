@@ -112,8 +112,6 @@ public class DelayStatServiceImpl implements DelayStatService {
         DelayStatDO delayStatDO = new DelayStatDO();
         delayStatDO.setId(delayStat.getId());
         delayStatDO.setDelayTime(delayStat.getDelayTime());
-        delayStatDO.setMaxDelayTime(delayStat.getMaxDelayTime());
-        delayStatDO.setMinDelayTime(delayStat.getMinDelayTime());
         delayStatDO.setDelayNumber(delayStat.getDelayNumber());
         delayStatDO.setPipelineId(delayStat.getPipelineId());
         delayStatDO.setGmtCreate(delayStat.getGmtCreate());
@@ -132,8 +130,6 @@ public class DelayStatServiceImpl implements DelayStatService {
         DelayStat delayStat = new DelayStat();
         delayStat.setId(delayStatDO.getId());
         delayStat.setDelayTime(delayStatDO.getDelayTime());
-        delayStat.setMinDelayTime(delayStatDO.getMinDelayTime());
-        delayStat.setMaxDelayTime(delayStatDO.getMaxDelayTime());
         delayStat.setDelayNumber(delayStatDO.getDelayNumber());
         delayStat.setPipelineId(delayStatDO.getPipelineId());
         delayStat.setGmtCreate(delayStatDO.getGmtCreate());

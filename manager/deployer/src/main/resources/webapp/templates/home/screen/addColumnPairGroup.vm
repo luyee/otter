@@ -63,7 +63,7 @@ $control.setTemplate("home:navigation.vm")
   <div class="box1"> 
         <select id="dltSource" name="dltSource"  multiple="multiple"> 
 			#foreach ($columnPair in $preColumnPairs)
-				<option value="$!columnPair.sourceColumn.name:$!columnPair.isPk:$!columnPair.functionName:$!columnPair.targetColumn.name">[$!columnPair.sourceColumn.name:$!columnPair.isPk:$!columnPair.functionName] - [$!columnPair.targetColumn.name]</option> 
+				<option value="$!columnPair.sourceColumn.name:$!columnPair.targetColumn.name">[$!columnPair.sourceColumn.name] - [$!columnPair.targetColumn.name]</option> 
             #end
         </select> 
   </div> 
@@ -76,7 +76,7 @@ $control.setTemplate("home:navigation.vm")
   <div class="box3"> 
         <select id="dltTarget" name="$columnGroup.groupResult.key" multiple="multiple"> 
 			#foreach ($columnPair in $columnPairs)
-				<option value="$!columnPair.sourceColumn.name:$!columnPair.isPk:$!columnPair.functionName:$!columnPair.targetColumn.name">[$!columnPair.sourceColumn.name:$!columnPair.isPk:$!columnPair.functionName] - [$!columnPair.targetColumn.name]</option> 
+				<option value="$!columnPair.sourceColumn.name:$!columnPair.targetColumn.name">[$!columnPair.sourceColumn.name] - [$!columnPair.targetColumn.name]</option> 
             #end
         </select> 
   </div> 

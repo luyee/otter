@@ -53,6 +53,12 @@ $control.setTemplate("home:navigation.vm")
   </tr>
   #end
   
+   #if($!canal.canalParameter.sourcingType.isKafka())
+  <tr>
+  <th>kafka的topic：</th><td>$!canal.canalParameter.kafkaTopicList</td>
+  </tr>
+  #end
+  
   <tr>
   <th>位点信息：</th><td>#foreach($position in $!canal.canalParameter.positions)$position;#end</td>
   </tr>

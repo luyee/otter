@@ -206,9 +206,7 @@ public class DataColumnPairServiceImpl implements DataColumnPairService {
         columnPair.setDataMediaPairId(dataColumnPairDo.getDataMediaPairId());
         columnPair.setGmtCreate(dataColumnPairDo.getGmtCreate());
         columnPair.setGmtModified(dataColumnPairDo.getGmtModified());
-        columnPair.setIsPk(dataColumnPairDo.getIsPk());
-        columnPair.setFunctionName(dataColumnPairDo.getFunctionName());
-        columnPair.setSourceType(dataColumnPairDo.getSourceType()); 
+
         return columnPair;
     }
 
@@ -236,9 +234,7 @@ public class DataColumnPairServiceImpl implements DataColumnPairService {
         dataColumnPairDo.setDataMediaPairId(dataColumnPair.getDataMediaPairId());
         dataColumnPairDo.setGmtCreate(dataColumnPair.getGmtCreate());
         dataColumnPairDo.setGmtModified(dataColumnPair.getGmtModified());
-        dataColumnPairDo.setIsPk(dataColumnPair.getIsPk());
-        dataColumnPairDo.setFunctionName(dataColumnPair.getFunctionName());
-        dataColumnPairDo.setSourceType(dataColumnPair.getSourceType()); 
+
         return dataColumnPairDo;
     }
 

@@ -72,6 +72,7 @@ public class OtterManagerLauncher {
 
     private static void mergeProps(Properties props) {
         for (Entry<Object, Object> entry : props.entrySet()) {
+        	System.out.println("key "+(String) entry.getKey()+" v: "+ (String) entry.getValue());
             System.setProperty((String) entry.getKey(), (String) entry.getValue());
         }
     }

@@ -18,8 +18,8 @@ public class KafkaDialect extends AbstraNoSQLDialect {
 			int databaseMinorVersion) {
 		this.producer = dbconn;
 		this.databaseName = databaseName;
-		this.databaseMajorVersion = databaseMajorVersion;
-		this.databaseMinorVersion = databaseMinorVersion;
+//		this.databaseMajorVersion = databaseMajorVersion;
+//		this.databaseMinorVersion = databaseMinorVersion;
 		nosqlTemplate=new KafkaTemplate(producer); 
 	}
 	

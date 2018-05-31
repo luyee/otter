@@ -20,6 +20,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.alibaba.fastjson.JSON;
 import com.alibaba.otter.node.common.config.ConfigClientService;
 import com.alibaba.otter.node.etl.transform.exception.TransformException;
 import com.alibaba.otter.shared.common.model.config.ConfigHelper;
@@ -41,6 +45,7 @@ import com.alibaba.otter.shared.etl.model.RowBatch;
  * @version 4.0.0
  */
 public class OtterTransformerFactory {
+    protected final Logger              logger  = LoggerFactory.getLogger(this.getClass());
 
     private ConfigClientService configClientService;
     private RowDataTransformer  rowDataTransformer;
@@ -60,6 +65,7 @@ public class OtterTransformerFactory {
         Map<Class, BatchObject> result = new HashMap<Class, BatchObject>();
         // 初始化默认值
         result.put(EventData.class, initBatchObject(identity, EventData.class));
+        logger.warn(String.format("rowBatch.getDatas(): %s  ", JSON.toJSONString(rowBatch.getDatas())));
 
         for (EventData eventData : rowBatch.getDatas()) {
             // 处理eventData
@@ -67,6 +73,7 @@ public class OtterTransformerFactory {
             Pipeline pipeline = configClientService.findPipeline(identity.getPipelineId());
             // 针对每个同步数据，可能会存在多路复制的情况
             List<DataMediaPair> dataMediaPairs = ConfigHelper.findDataMediaPairByMediaId(pipeline, tableId);
+           logger.warn(String.format("eventData: %s ,dataMediaPairs: %s, pipeline %s ", JSON.toJSONString(eventData),JSON.toJSONString(dataMediaPairs),JSON.toJSONString(pipeline)));
             for (DataMediaPair pair : dataMediaPairs) {
                 if (!pair.getSource().getId().equals(tableId)) { // 过滤tableID不为源的同步
                     continue;

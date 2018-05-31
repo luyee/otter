@@ -21,6 +21,7 @@ import java.util.List;
 import org.slf4j.MDC;
 import org.springframework.util.CollectionUtils;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.otter.node.etl.OtterConstants;
 import com.alibaba.otter.node.etl.common.jmx.StageAggregation.AggregationItem;
 import com.alibaba.otter.node.etl.common.pipe.PipeKey;
@@ -50,7 +51,10 @@ public class ExtractTask extends GlobalTask {
         MDC.put(OtterConstants.splitPipelineLogFileKey, String.valueOf(pipelineId));
         while (running) {
             try {
+            	logger.warn("start extract"); 
                 final EtlEventData etlEventData = arbitrateEventService.extractEvent().await(pipelineId);
+            	logger.warn("start extract etlEventData"+ JSON.toJSONString(etlEventData)); 
+
                 Runnable task = new Runnable() {
 
                     public void run() {
@@ -68,7 +72,10 @@ public class ExtractTask extends GlobalTask {
                             pipeline = configClientService.findPipeline(pipelineId);
                             List<PipeKey> keys = (List<PipeKey>) etlEventData.getDesc();
                             long nextNodeId = etlEventData.getNextNid();
+                        	logger.warn("start extract rowDataPipeDelegate.keys: "+ JSON.toJSONString(keys)); 
+
                             DbBatch dbBatch = rowDataPipeDelegate.get(keys);
+                        	logger.warn("end extract dbBatch"+ JSON.toJSONString(dbBatch)); 
 
                             // 可能拿到为null，因为内存不足或者网络异常，长时间阻塞时，导致从pipe拿数据出现异常，数据可能被上一个节点已经删除
                             if (dbBatch == null) {
@@ -76,7 +83,11 @@ public class ExtractTask extends GlobalTask {
                                 return;
                             }
 
+                        	logger.warn("start otterExtractorFactory.extract dbBatch"+ JSON.toJSONString(dbBatch)); 
+
                             otterExtractorFactory.extract(dbBatch);// 重新装配一下数据
+                        	logger.warn("after otterExtractorFactory.extract dbBatch"+ JSON.toJSONString(dbBatch)); 
+
                             if (dbBatch.getFileBatch() != null
                                 && !CollectionUtils.isEmpty(dbBatch.getFileBatch().getFiles())
                                 && pipeline.getParameters().getFileDetect()) { // 判断一下是否有文件同步，并且需要进行文件对比

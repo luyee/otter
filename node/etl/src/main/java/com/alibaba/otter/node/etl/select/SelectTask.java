@@ -28,6 +28,7 @@ import java.util.concurrent.locks.LockSupport;
 import org.slf4j.MDC;
 import org.springframework.util.CollectionUtils;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.otter.canal.common.CanalException;
 import com.alibaba.otter.node.common.statistics.StatisticsClientService;
 import com.alibaba.otter.node.etl.OtterConstants;
@@ -170,7 +171,10 @@ public class SelectTask extends GlobalTask {
         otterSelector.start();
 
         canStartSelector.set(false);// 初始化为false
+        logger.warn("start to startProcessTermin");
         startProcessTermin();
+        logger.warn("start to startProcessSelect");
+
         startProcessSelect();
 
         isStart = true;
@@ -221,14 +225,17 @@ public class SelectTask extends GlobalTask {
                 // 等待ProcessTermin exhaust，会阻塞
                 // ProcessTermin发现出现rollback，会立即通知暂停，比分布式permit及时性高
                 canStartSelector.get();
-
+                logger.warn(String.format("before checkContinueWork %b  , pipeline: %d", needCheck,pipelineId));
                 // 判断当前是否为工作节点，S模块不能出现双节点工作，selector容易出现数据错乱
                 if (needCheck) {
                     checkContinueWork();
                 }
+                logger.warn(String.format("after checkContinueWork %b , pipeline: %d", needCheck,pipelineId));
 
                 // 出现阻塞挂起时，等待mananger处理完成，解挂开启同步
                 arbitrateEventService.toolEvent().waitForPermit(pipelineId);// 出现rollback后能及时停住
+                
+                logger.warn(String.format("after waitForPermit %b  ,  pipeline: %d", needCheck,pipelineId));
 
                 // 使用startVersion要解决的一个问题：出现rollback时，尽可能判断取出来的数据是rollback前还是rollback后，想办法丢弃rollback前的数据。
                 // (因为出现rollback，之前取出去的几个批次的数据其实是没有执行成功，get取出来的数据会是其后一批数据，如果不丢弃的话，会出现后面的数据先执行，然后又回到出错的点，再执行一遍)
@@ -258,13 +265,14 @@ public class SelectTask extends GlobalTask {
                     batchBuffer.put(new BatchTermin(gotMessage.getId(), false));
                     continue;
                 }
-
+                logger.warn("start etlEventData ");
                 final EtlEventData etlEventData = arbitrateEventService.selectEvent().await(pipelineId);
                 if (rversion.get() != startVersion) {// 说明存在过变化，中间出现过rollback，需要丢弃该数据
                     logger.warn("rollback happend , should skip this data and get new message.");
                     canStartSelector.get();// 确认一下rollback是否完成
                     gotMessage = otterSelector.selector();// 这时不管有没有数据，都需要执行一次s/e/t/l
                 }
+                logger.warn("end etlEventData ");
 
                 final Message message = gotMessage;
                 final BatchTermin batchTermin = new BatchTermin(message.getId(), etlEventData.getProcessId());
@@ -283,6 +291,7 @@ public class SelectTask extends GlobalTask {
                         String currentName = Thread.currentThread().getName();
                         Thread.currentThread().setName(createTaskName(pipelineId, "SelectWorker"));
                         try {
+                        	logger.warn(String.format("start configClientService.findPipeline, %d ",message.getDatas().size()));
                             pipeline = configClientService.findPipeline(pipelineId);
                             List<EventData> eventData = message.getDatas();
                             long startTime = etlEventData.getStartTime();
@@ -302,6 +311,7 @@ public class SelectTask extends GlobalTask {
                             for (EventData data : eventData) {
                                 rowBatch.merge(data);
                             }
+                            logger.warn(String.format("start configClientService.findPipeline 2 , %d ,%s",message.getDatas().size(),JSON.toJSONString(message.getDatas())));
 
                             long nextNodeId = etlEventData.getNextNid();
                             List<PipeKey> pipeKeys = rowDataPipeDelegate.put(new DbBatch(rowBatch), nextNodeId);
@@ -309,6 +319,7 @@ public class SelectTask extends GlobalTask {
                             etlEventData.setNumber((long) eventData.size());
                             etlEventData.setFirstTime(startTime); // 使用原始数据的第一条
                             etlEventData.setBatchId(message.getId());
+                        	logger.warn(String.format("start configClientService.findPipeline 3 , %d, %s ",message.getDatas().size(),arbitrateEventService.selectEvent().getClass().getName()));
 
                             if (profiling) {
                                 Long profilingEndTime = System.currentTimeMillis();
@@ -316,7 +327,10 @@ public class SelectTask extends GlobalTask {
                                     StageType.SELECT,
                                     new AggregationItem(profilingStartTime, profilingEndTime));
                             }
+                            logger.warn(String.format("start to single etlEventData: %s ,pipeline:  %d ", JSON.toJSONString(etlEventData), pipelineId));
                             arbitrateEventService.selectEvent().single(etlEventData);
+                            logger.warn(String.format("end to single etlEventData: %s ,pipeline: %d ", JSON.toJSONString(etlEventData), pipelineId));
+
                         } catch (Throwable e) {
                             if (!isInterrupt(e)) {
                                 logger.error(String.format("[%s] selectwork executor is error! data:%s",
@@ -386,32 +400,52 @@ public class SelectTask extends GlobalTask {
 
                                 BatchTermin batch = batchBuffer.take();
                                 logger.info("start process termin : {}", batch.toString());
+                                logger.warn("add start process termin : {}", batch.toString());
+
                                 if (batch.isNeedWait()) {
+                                    logger.warn("add start isNeedWait start process termin : {}", batch.toString());
+
                                     lastStatus = processTermin(lastStatus, batch.getBatchId(), batch.getProcessId());
+                                    logger.warn("add end isNeedWait start process termin : {}", batch.toString());
+
                                 } else {
                                     // 不需要wait的批次，直接以上一个batch的结果决定是否ack
+                                    logger.warn("add start2  isNeedWait start process termin : {}", batch.toString());
+
                                     if (lastStatus) {
                                         ack(batch.getBatchId());
-                                        sendDelayReset(pipelineId);
+                                        //暂时注释掉sendDelayReset
+                                      //  sendDelayReset(pipelineId);
                                     } else {
                                         rollback(batch.getBatchId());// 会阻塞selector等待所有batch的rollback操作完成
                                     }
+                                    
+                                    logger.warn("add end2   isNeedWait start process termin : {}", batch.toString());
+
                                 }
 
                                 logger.info("end process termin : {}  result : {}", batch.toString(), lastStatus);
                             }
                         } catch (CanalException e) {// 捕获可处理的异常，进行retry,基本可自行恢复
                             logger.info(String.format("[%s] ProcessTermin has an error! retry...", pipelineId), e);
+                            logger.warn(String.format("add [%s] ProcessTermin has an error! retry...", pipelineId), e);
+
                             notifyRollback();
                         } catch (SelectException e) {// 捕获可处理的异常，进行retry,基本可自行恢复
                             logger.info(String.format("[%s] ProcessTermin has an error! retry...", pipelineId), e);
+                            logger.warn(String.format("add [%s] ProcessTermin has an error! retry...", pipelineId), e);
+
                             notifyRollback();
                         } catch (Throwable e) {
                             if (isInterrupt(e)) {
                                 logger.info(String.format("[%s] ProcessTermin is interrupted!", pipelineId), e);
+                                logger.warn(String.format("add [%s] ProcessTermin is interrupted!", pipelineId), e);
+
                                 return;
                             } else {
                                 logger.error(String.format("[%s] ProcessTermin is error!", pipelineId), e);
+                                logger.warn(String.format("add [%s] ProcessTermin is error!", pipelineId), e);
+
                                 notifyRollback();
                                 sendRollbackTermin(pipelineId, e);
                             }
@@ -440,7 +474,7 @@ public class SelectTask extends GlobalTask {
             terminData = arbitrateEventService.terminEvent().await(pipelineId);
             Long terminBatchId = terminData.getBatchId();
             Long terminProcessId = terminData.getProcessId();
-
+            logger.warn(String.format("terminBatchId %d, processId: %d, terminProcessId: %d,batchId: %d ", terminBatchId,processId,terminProcessId,batchId));
             if (terminBatchId == null && processId != -1L && !processId.equals(terminProcessId)) {
                 // 针对manager发起rollback，terminBatchId可能为null，需要特殊处理下
                 exception = new SelectException("unmatched processId, SelectTask batchId = " + batchId
@@ -485,6 +519,7 @@ public class SelectTask extends GlobalTask {
     }
 
     private void rollback(Long batchId) {
+    	logger.warn(String.format("rollback batchId: %d", batchId));
         notifyRollback();
         // otterSelector.rollback(batchId);
         otterSelector.rollback();// 一旦出错，rollback所有的mark，避免拿出后面的数据进行同步

@@ -1,6 +1,7 @@
 package com.alibaba.otter.shared.common.model.config.data.kafka;
 
 import java.util.Map;
+import java.util.Properties;
 
 import com.alibaba.otter.shared.common.model.config.data.DataMediaSource;
 /**
@@ -15,13 +16,25 @@ public class KafkaMediaSource extends DataMediaSource {
 
 	private String bootstrapServers;
 	private String zookeeperConnect;
+	  private Properties        properties;
 	private long batchSize=128000L;
 	private long bufferMemory=97108864L;
 	
+	private String url ;
+	
+	
 
+	public String getUrl() {
+		return url;
+	}
+
+	public void setUrl(String url) {
+		this.url = url;
+	}
 
 	public String getBootstrapServers() {
-		return bootstrapServers;
+		 return url;
+		//return bootstrapServers;
 	}
 
 	public void setBootstrapServers(String bootstrapServers) {
@@ -51,5 +64,6 @@ public class KafkaMediaSource extends DataMediaSource {
 	public void setBufferMemory(long bufferMemory) {
 		this.bufferMemory = bufferMemory;
 	}
+
 
 }

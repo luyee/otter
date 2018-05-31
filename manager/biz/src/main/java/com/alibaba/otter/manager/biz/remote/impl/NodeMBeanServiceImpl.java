@@ -18,6 +18,8 @@ package com.alibaba.otter.manager.biz.remote.impl;
 
 import java.text.MessageFormat;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
@@ -29,6 +31,7 @@ import com.alibaba.otter.manager.biz.common.exceptions.ManagerException;
 import com.alibaba.otter.manager.biz.config.node.NodeService;
 import com.alibaba.otter.manager.biz.remote.NodeRemoteService;
 import com.alibaba.otter.shared.common.model.config.node.Node;
+import com.google.common.base.Function;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -55,20 +58,18 @@ public class NodeMBeanServiceImpl implements NodeRemoteService {
             throw new ManagerException(e);
         }
 
-//        GenericMapMaker mapMaker = null;
-        LoadingCache mapMaker =CacheBuilder.newBuilder()
-                .maximumSize(1000).softValues().removalListener(new RemovalListener<Long, MBeanServerConnection>(){
+        LoadingCache mapMaker = null;
+        mapMaker =CacheBuilder.newBuilder().maximumSize(1000).expireAfterAccess(5,TimeUnit.MINUTES)
+            .softValues().removalListener(new RemovalListener<Long, MBeanServerConnection>(){
+				@Override
+				public void onRemoval(RemovalNotification<Long, MBeanServerConnection> paramRemovalNotification) {
+					
+				}}).build(new CacheLoader<Long, MBeanServerConnection>(){ 
 					@Override
-					public void onRemoval(RemovalNotification<Long, MBeanServerConnection> paramRemovalNotification) {
-						
-					}}).build(new CacheLoader<Long, MBeanServerConnection>(){ 
-						@Override
-						public MBeanServerConnection load(Long key) throws Exception {
-							return null;
-						}
-					});
-//        new MapMaker().expireAfterAccess(5, TimeUnit.MINUTES)
-//            .softValues()
+					public MBeanServerConnection load(Long key) throws Exception {
+						return null;
+					}
+				});
 //            .evictionListener(new MapEvictionListener<Long, MBeanServerConnection>() {
 //
 //                public void onEviction(Long nid, MBeanServerConnection mbeanServer) {
@@ -77,34 +78,34 @@ public class NodeMBeanServiceImpl implements NodeRemoteService {
 //            });
 
         mbeanServers = CacheBuilder.newBuilder()
-                .maximumSize(1000).build(new CacheLoader<Long, MBeanServerConnection>(){ 
-					@Override
-					public MBeanServerConnection load(Long nid) throws Exception{
-			                Node node = nodeService.findById(nid);
-			                String ip = node.getIp();
-			                if (node.getParameters().getUseExternalIp()) {
-			                    ip = node.getParameters().getExternalIp();
-			                }
+                .maximumSize(1000).build(new CacheLoader<Long, MBeanServerConnection>() {
 
-			                int port = node.getPort().intValue() + 1;
-			                Integer mbeanPort = node.getParameters().getMbeanPort();
-			                if (mbeanPort != null && mbeanPort != 0) {// 做个兼容处理，<=4.2.2版本没有mbeanPort设置
-			                    port = mbeanPort;
-			                }
+            public MBeanServerConnection load(Long nid) {
+                Node node = nodeService.findById(nid);
+                String ip = node.getIp();
+                if (node.getParameters().getUseExternalIp()) {
+                    ip = node.getParameters().getExternalIp();
+                }
 
-			                try {
-			                    JMXServiceURL serviceURL = new JMXServiceURL(MessageFormat.format(SERVICE_URL,
-			                        ip,
-			                        String.valueOf(port)));
-			                    JMXConnector cntor = JMXConnectorFactory.connect(serviceURL, null);
-			                    MBeanServerConnection mbsc = cntor.getMBeanServerConnection();
-			                    return mbsc;
-			                } catch (Exception e) {
-			                    throw new ManagerException(e);
-			                }
-			            }
-				});
+                int port = node.getPort().intValue() + 1;
+                Integer mbeanPort = node.getParameters().getMbeanPort();
+                if (mbeanPort != null && mbeanPort != 0) {// 做个兼容处理，<=4.2.2版本没有mbeanPort设置
+                    port = mbeanPort;
+                }
 
+                try {
+                    JMXServiceURL serviceURL = new JMXServiceURL(MessageFormat.format(SERVICE_URL,
+                        ip,
+                        String.valueOf(port)));
+                    JMXConnector cntor = JMXConnectorFactory.connect(serviceURL, null);
+                    MBeanServerConnection mbsc = cntor.getMBeanServerConnection();
+                    return mbsc;
+                } catch (Exception e) {
+                    throw new ManagerException(e);
+                }
+            }
+
+        });
     }
 
     public String getHeapMemoryUsage(Long nid) {

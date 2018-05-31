@@ -150,7 +150,7 @@ public class EventColumn implements Serializable {
         result = prime * result + index;
         result = prime * result + (isKey ? 1231 : 1237);
         result = prime * result + (isNull ? 1231 : 1237);
-        result = prime * result + (isUpdate ? 1231 : 1237);
+     //   result = prime * result + (isUpdate ? 1231 : 1237);
         return result;
     }
 

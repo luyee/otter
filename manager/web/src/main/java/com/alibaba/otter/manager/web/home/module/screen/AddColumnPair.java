@@ -21,7 +21,6 @@ import java.util.List;
 
 import javax.annotation.Resource;
 
-
 import com.alibaba.citrus.turbine.Context;
 import com.alibaba.citrus.turbine.dataresolver.Param;
 import com.alibaba.otter.manager.biz.config.datacolumnpair.DataColumnPairService;
@@ -47,7 +46,6 @@ public class AddColumnPair {
         List<String> sourceColumns = dataMediaService.queryColumnByMedia(sourcedataMedia);
         List<String> targetColumns = dataMediaService.queryColumnByMedia(targetdataMedia);
 
-        List<String> underSourceColumnsr = new ArrayList<String>();
         List<String> underSourceColumns = new ArrayList<String>();
         List<String> underTargetColumns = new ArrayList<String>();
 
@@ -56,19 +54,7 @@ public class AddColumnPair {
         if (columnPairs != null && !columnPairs.isEmpty()) {
             for (ColumnPair columnPair : columnPairs) {
                 if (columnPair.getSourceColumn() != null) {
-                	String uscrText=columnPair.getSourceColumn().getName();
-                	underSourceColumnsr.add(columnPair.getSourceColumn().getName());
-                	if (columnPair.getIsPk()!=null && 1==columnPair.getIsPk()){
-	                	uscrText=uscrText+"-"+"主键";
-	                }else{
-	                	uscrText=uscrText+"-"+"非主键";
-	                }
-	                if ("ori".equalsIgnoreCase(columnPair.getFunctionName())){
-	                	uscrText=uscrText+"-"+"原始值";
-	                }else if ("reverse".equalsIgnoreCase(columnPair.getFunctionName())){
-	                	uscrText=uscrText+"-"+"倒排字符串";
-	                }
-                    underSourceColumns.add(columnPair.getSourceColumn().getName()+":"+columnPair.getIsPk()+":"+columnPair.getFunctionName()+"|"+uscrText);
+                    underSourceColumns.add(columnPair.getSourceColumn().getName());
                 }
                 if (columnPair.getTargetColumn() != null) {
                     underTargetColumns.add(columnPair.getTargetColumn().getName());
@@ -76,7 +62,7 @@ public class AddColumnPair {
             }
         }
 
-        sourceColumns.removeAll(underSourceColumnsr);
+        sourceColumns.removeAll(underSourceColumns);
         targetColumns.removeAll(underTargetColumns);
 
         context.put("sourceMediaId", sourceMediaId);

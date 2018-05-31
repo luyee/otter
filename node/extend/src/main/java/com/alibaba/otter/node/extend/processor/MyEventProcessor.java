@@ -14,13 +14,13 @@ import com.alibaba.otter.shared.etl.model.EventColumn;
 import com.alibaba.otter.shared.etl.model.EventData;
 import com.alibaba.otter.shared.etl.model.EventType;
 
-public class TestEventProcessor extends AbstractEventProcessor {
+public class MyEventProcessor extends AbstractEventProcessor {
 	
-	private static final Logger logger             = LoggerFactory.getLogger(TestEventProcessor.class);
+	private static final Logger logger             = LoggerFactory.getLogger(MyEventProcessor.class);
     public boolean process(EventData eventData) {
     	List<EventColumn> columns = eventData.getColumns();
-    	if((eventData.getTableName()!=null&&eventData.getTableName().equalsIgnoreCase("_repayment_plan_log_new"))||(eventData.getTableName()!=null&&eventData.getTableName().equalsIgnoreCase("tableB"))){
-    		logger.warn("skip EventData"+ JSON.toJSONString(eventData));
+    	if((eventData.getTableName()!=null&&eventData.getTableName().equalsIgnoreCase("repayment_plan"))){
+    		logger.warn("skip EventData table:"+ eventData.getTableName());
     		/* 判断下是否包含字段settlement_bill_type, withhold_type*/
 //    		if(!containSpecsColumns(columns, "settlement_bill_type")){
 //    		

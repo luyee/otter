@@ -24,138 +24,120 @@ import java.util.Date;
  */
 public class TopDelayStat {
 
-	private String channelName;
-	private String pipelineName;
-	private Long channelId;
-	private Long pipelineId;
-	private Long delayTime;
-	private Long maxDelayTime;
-	private Long minDelayTime;
-	private Date lastUpdate; // 延迟统计最后一次更新时间
-	private Long statTime; // stat统计时间范围,分钟为单位
-	private DataStat dbStat = new DataStat(0L, 0L);
-	private DataStat fileStat = new DataStat(0L, 0L);
+    private String   channelName;
+    private String   pipelineName;
+    private Long     channelId;
+    private Long     pipelineId;
+    private Long     delayTime;
+    private Date     lastUpdate;                     // 延迟统计最后一次更新时间
+    private Long     statTime;                       // stat统计时间范围,分钟为单位
+    private DataStat dbStat   = new DataStat(0L, 0L);
+    private DataStat fileStat = new DataStat(0L, 0L);
 
-	public String getChannelName() {
-		return channelName;
-	}
+    public String getChannelName() {
+        return channelName;
+    }
 
-	public void setChannelName(String channelName) {
-		this.channelName = channelName;
-	}
+    public void setChannelName(String channelName) {
+        this.channelName = channelName;
+    }
 
-	public String getPipelineName() {
-		return pipelineName;
-	}
+    public String getPipelineName() {
+        return pipelineName;
+    }
 
-	public void setPipelineName(String pipelineName) {
-		this.pipelineName = pipelineName;
-	}
+    public void setPipelineName(String pipelineName) {
+        this.pipelineName = pipelineName;
+    }
 
-	public Long getChannelId() {
-		return channelId;
-	}
+    public Long getChannelId() {
+        return channelId;
+    }
 
-	public void setChannelId(Long channelId) {
-		this.channelId = channelId;
-	}
+    public void setChannelId(Long channelId) {
+        this.channelId = channelId;
+    }
 
-	public Long getPipelineId() {
-		return pipelineId;
-	}
+    public Long getPipelineId() {
+        return pipelineId;
+    }
 
-	public void setPipelineId(Long pipelineId) {
-		this.pipelineId = pipelineId;
-	}
+    public void setPipelineId(Long pipelineId) {
+        this.pipelineId = pipelineId;
+    }
 
-	public Long getMaxDelayTime() {
-		return maxDelayTime;
-	}
+    public Long getDelayTime() {
+        return delayTime;
+    }
 
-	public void setMaxDelayTime(Long maxDelayTime) {
-		this.maxDelayTime = maxDelayTime;
-	}
+    public void setDelayTime(Long delayTime) {
+        this.delayTime = delayTime;
+    }
 
-	public Long getMinDelayTime() {
-		return minDelayTime;
-	}
+    public Date getLastUpdate() {
+        return lastUpdate;
+    }
 
-	public void setMinDelayTime(Long minDelayTime) {
-		this.minDelayTime = minDelayTime;
-	}
+    public void setLastUpdate(Date lastUpdate) {
+        this.lastUpdate = lastUpdate;
+    }
 
-	public Long getDelayTime() {
-		return delayTime;
-	}
+    public Long getStatTime() {
+        return statTime;
+    }
 
-	public void setDelayTime(Long delayTime) {
-		this.delayTime = delayTime;
-	}
+    public void setStatTime(Long statTime) {
+        this.statTime = statTime;
+    }
 
-	public Date getLastUpdate() {
-		return lastUpdate;
-	}
+    public DataStat getDbStat() {
+        return dbStat;
+    }
 
-	public void setLastUpdate(Date lastUpdate) {
-		this.lastUpdate = lastUpdate;
-	}
+    public void setDbStat(DataStat dbStat) {
+        this.dbStat = dbStat;
+    }
 
-	public Long getStatTime() {
-		return statTime;
-	}
+    public DataStat getFileStat() {
+        return fileStat;
+    }
 
-	public void setStatTime(Long statTime) {
-		this.statTime = statTime;
-	}
+    public void setFileStat(DataStat fileStat) {
+        this.fileStat = fileStat;
+    }
 
-	public DataStat getDbStat() {
-		return dbStat;
-	}
+    /**
+     * 获取延迟统计最后更新时间距当前时间的差值
+     */
+    public Long getLastUpdateDelay() {
+        return (new Date().getTime() - lastUpdate.getTime()) / 1000;
+    }
 
-	public void setDbStat(DataStat dbStat) {
-		this.dbStat = dbStat;
-	}
+    public static class DataStat {
 
-	public DataStat getFileStat() {
-		return fileStat;
-	}
+        public DataStat(Long number, Long size){
+            this.number = number;
+            this.size = size;
+        }
 
-	public void setFileStat(DataStat fileStat) {
-		this.fileStat = fileStat;
-	}
+        private Long number;
+        private Long size;
 
-	/**
-	 * 获取延迟统计最后更新时间距当前时间的差值
-	 */
-	public Long getLastUpdateDelay() {
-		return (new Date().getTime() - lastUpdate.getTime()) / 1000;
-	}
+        public Long getNumber() {
+            return number;
+        }
 
-	public static class DataStat {
+        public void setNumber(Long number) {
+            this.number = number;
+        }
 
-		public DataStat(Long number, Long size) {
-			this.number = number;
-			this.size = size;
-		}
+        public Long getSize() {
+            return size;
+        }
 
-		private Long number;
-		private Long size;
+        public void setSize(Long size) {
+            this.size = size;
+        }
 
-		public Long getNumber() {
-			return number;
-		}
-
-		public void setNumber(Long number) {
-			this.number = number;
-		}
-
-		public Long getSize() {
-			return size;
-		}
-
-		public void setSize(Long size) {
-			this.size = size;
-		}
-
-	}
+    }
 }

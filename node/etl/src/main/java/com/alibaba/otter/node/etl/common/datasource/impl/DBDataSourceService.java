@@ -33,6 +33,8 @@ import javax.sql.DataSource;
 import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
@@ -52,6 +54,7 @@ import com.alibaba.otter.shared.common.model.config.data.hdfs.HDFSMediaSource;
 import com.alibaba.otter.shared.common.model.config.data.kafka.KafkaMediaSource;
 import com.alibaba.otter.shared.common.model.config.data.mq.MqMediaSource;
 import com.alibaba.rocketmq.client.exception.MQClientException;
+import com.alibaba.rocketmq.shade.com.alibaba.fastjson.JSON;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -299,24 +302,62 @@ public class DBDataSourceService implements DataSourceService, DisposableBean {
 		Properties props = new Properties();
 		if (StringUtils.isNotEmpty(kafkaMediaSource.getBootstrapServers())){
 			props.put("bootstrap.servers",kafkaMediaSource.getBootstrapServers());
-			props.put("metadata.broker.list", kafkaMediaSource.getBootstrapServers());
+			//props.put("metadata.broker.list", kafkaMediaSource.getBootstrapServers());
 		}
 		if (StringUtils.isNotEmpty(kafkaMediaSource.getZookeeperConnect())){
-			props.put("zookeeper.connect",kafkaMediaSource.getZookeeperConnect());
+		//	props.put("zookeeper.connect",kafkaMediaSource.getZookeeperConnect());
 		}
-		props.put("batch.size", kafkaMediaSource.getBatchSize());
-		props.put("buffer.memory", kafkaMediaSource.getBufferMemory());
+//		props.put("batch.size", String.valueOf(kafkaMediaSource.getBatchSize()));
+//		props.put("buffer.memory", String.valueOf(kafkaMediaSource.getBufferMemory()));
+		
+        props.put(ProducerConfig.ACKS_CONFIG, "1");
+        props.put("retries", 1);
+        props.put("batch.size", 16384);
+        props.put("linger.ms", 1);
+        props.put("buffer.memory", 33554432);
+        props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
 		
 		
-		props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-		props.put("serializer.class", "kafka.serializer.StringEncoder");
-		props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-		props.put("request.required.acks", "1");
+//		props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+//		props.put("serializer.class", "kafka.serializer.StringEncoder");
+//		props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+//		props.put("request.required.acks", "1");
 		
 		props.put("compression.type", "gzip"); // 压缩
-		props.put("producer.type", "async");
+//		props.put("producer.type", "async");
+		logger.warn(String.format("kafka props : %s", JSON.toJSONString(props)));
 		org.apache.kafka.clients.producer.Producer kp = new KafkaProducer(props);
+		
 		return kp;
+	}
+	
+	public static void main(String[] args){
+		Properties props = new Properties();
+		props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "172.28.3.158:9092,172.28.3.159:9092");
+		props.put(ProducerConfig.ACKS_CONFIG, "1");
+        props.put("retries", 1);
+        props.put("batch.size", 16384);
+        props.put("linger.ms", 1);
+        props.put("buffer.memory", 33554432);
+        props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+		
+		
+//		props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+//		props.put("serializer.class", "kafka.serializer.StringEncoder");
+//		props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+//		props.put("request.required.acks", "1");
+		
+		props.put("compression.type", "gzip"); // 压缩
+		org.apache.kafka.clients.producer.Producer kp = new KafkaProducer(props);
+		try {
+			kp.send(new ProducerRecord<String, String>("test", "aaaaa"));
+		} catch (Exception e) {
+			System.out.println(String.format("failed %s", e));
+		}
+		
+		
 	}
 
 	public org.apache.hadoop.hbase.client.Connection getHBaseConnection(HBaseMediaSource dbMediaSource) throws IOException {
@@ -370,9 +411,9 @@ public class DBDataSourceService implements DataSourceService, DisposableBean {
 	@SuppressWarnings("unchecked")
 	public Object getDataSource(long pipelineId, DataMediaSource dataMediaSource) {
 		Assert.notNull(dataMediaSource);
-		DbMediaSource dbMediaSource = (DbMediaSource) dataMediaSource;
+		//DbMediaSource dbMediaSource = (DbMediaSource) dataMediaSource;
 		try {
-			return dataSources.get(pipelineId).get(dbMediaSource);
+			return dataSources.get(pipelineId).get(dataMediaSource);
 		} catch (ExecutionException e) {
 			e.printStackTrace();
 			return null;

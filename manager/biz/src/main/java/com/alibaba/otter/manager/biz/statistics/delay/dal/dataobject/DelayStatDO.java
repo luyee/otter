@@ -29,82 +29,64 @@ import com.alibaba.otter.shared.common.utils.OtterToStringStyle;
 
 public class DelayStatDO implements Serializable {
 
-	private static final long serialVersionUID = 1L;
-	private Long id;
-	private Long delayTime;
-	private Long minDelayTime;
-	private Long maxDelayTime;
-	private Long delayNumber;
-	private Long pipelineId;
-	private Date gmtCreate;
-	private Date gmtModified;
+    private static final long serialVersionUID = 1L;
+    private Long              id;
+    private Long              delayTime;
+    private Long              delayNumber;
+    private Long              pipelineId;
+    private Date              gmtCreate;
+    private Date              gmtModified;
 
-	public Long getId() {
-		return id;
-	}
+    public Long getId() {
+        return id;
+    }
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-	public Long getMinDelayTime() {
-		return minDelayTime;
-	}
+    public Long getDelayTime() {
+        return delayTime;
+    }
 
-	public void setMinDelayTime(Long minDelayTime) {
-		this.minDelayTime = minDelayTime;
-	}
+    public void setDelayTime(Long delayTime) {
+        this.delayTime = delayTime;
+    }
 
-	public Long getMaxDelayTime() {
-		return maxDelayTime;
-	}
+    public Long getDelayNumber() {
+        return delayNumber;
+    }
 
-	public void setMaxDelayTime(Long maxDelayTime) {
-		this.maxDelayTime = maxDelayTime;
-	}
+    public void setDelayNumber(Long delayNumber) {
+        this.delayNumber = delayNumber;
+    }
 
-	public Long getDelayTime() {
-		return delayTime;
-	}
+    public Long getPipelineId() {
+        return pipelineId;
+    }
 
-	public void setDelayTime(Long delayTime) {
-		this.delayTime = delayTime;
-	}
+    public void setPipelineId(Long pipelineId) {
+        this.pipelineId = pipelineId;
+    }
 
-	public Long getDelayNumber() {
-		return delayNumber;
-	}
+    public Date getGmtCreate() {
+        return gmtCreate;
+    }
 
-	public void setDelayNumber(Long delayNumber) {
-		this.delayNumber = delayNumber;
-	}
+    public void setGmtCreate(Date gmtCreate) {
+        this.gmtCreate = gmtCreate;
+    }
 
-	public Long getPipelineId() {
-		return pipelineId;
-	}
+    public Date getGmtModified() {
+        return gmtModified;
+    }
 
-	public void setPipelineId(Long pipelineId) {
-		this.pipelineId = pipelineId;
-	}
+    public void setGmtModified(Date gmtModified) {
+        this.gmtModified = gmtModified;
+    }
 
-	public Date getGmtCreate() {
-		return gmtCreate;
-	}
-
-	public void setGmtCreate(Date gmtCreate) {
-		this.gmtCreate = gmtCreate;
-	}
-
-	public Date getGmtModified() {
-		return gmtModified;
-	}
-
-	public void setGmtModified(Date gmtModified) {
-		this.gmtModified = gmtModified;
-	}
-
-	@Override
-	public String toString() {
-		return ToStringBuilder.reflectionToString(this, OtterToStringStyle.DEFAULT_STYLE);
-	}
+    @Override
+    public String toString() {
+        return ToStringBuilder.reflectionToString(this, OtterToStringStyle.DEFAULT_STYLE);
+    }
 }

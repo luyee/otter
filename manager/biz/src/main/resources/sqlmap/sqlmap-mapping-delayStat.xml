@@ -13,8 +13,6 @@
 	<resultMap id="delayStatResult" class="delayStat">
 		<result property="id" column="ID" />
 		<result property="delayTime" column="DELAY_TIME" />
-		<result property="maxDelayTime" column="MAX_DELAY_TIME" />
-		<result property="minDelayTime" column="MIN_DELAY_TIME" />
 		<result property="delayNumber" column="DELAY_NUMBER" />
 		<result property="pipelineId" column="PIPELINE_ID" />
 		<result property="gmtCreate" column="GMT_CREATE" />
@@ -26,13 +24,11 @@
 		<result property="pipelineName" column="PIPELINE_NAME" />
 		<result property="channelId" column="CHANNEL_ID" />
 		<result property="pipelineId" column="PIPELINE_ID" />
-		<result property="maxDelayTime" column="MAX_DELAY_TIME" />
-		<result property="minDelayTime" column="MIN_DELAY_TIME" />
 		<result property="delayTime" column="DELAY_TIME" />
 		<result property="lastUpdate" column="GMT_CREATE" />
 	</resultMap>
 	<!-- all delayStat columns -->
-	<sql id="allDelayStatColumns">ID,DELAY_TIME,MAX_DELAY_TIME,MIN_DELAY_TIME,DELAY_NUMBER,PIPELINE_ID,GMT_CREATE,GMT_MODIFIED</sql>
+	<sql id="allDelayStatColumns">ID,DELAY_TIME,DELAY_NUMBER,PIPELINE_ID,GMT_CREATE,GMT_MODIFIED</sql>
 
 	<!-- findDelayStatById -->
 	<select id="findDelayStatById" resultMap="delayStatResult" parameterClass="long">
@@ -79,8 +75,6 @@
 		update DELAY_STAT
 		set
 		DELAY_TIME=#delayTime#,
-		MAX_DELAY_TIME=#maxDelayTime#,
-		MIN_DELAY_TIME=#minDelayTime#,
 		DELAY_NUMBER=#delayNumber#,
 		PIPELINE_ID=#pipelineId#,
 		GMT_MODIFIED=now()
@@ -89,9 +83,9 @@
 
 	<insert id="insertDelayStat" parameterClass="delayStat">
 		insert into DELAY_STAT
-		(DELAY_TIME,MAX_DELAY_TIME,MIN_DELAY_TIME, DELAY_NUMBER, PIPELINE_ID, GMT_CREATE, GMT_MODIFIED)
+		(DELAY_TIME, DELAY_NUMBER, PIPELINE_ID, GMT_CREATE, GMT_MODIFIED)
 		values
-		(#delayTime#,#maxDelayTime#,#minDelayTime#,#delayNumber#,#pipelineId#,now(),now())
+		(#delayTime#,#delayNumber#,#pipelineId#,now(),now())
 		<selectKey keyProperty="id" resultClass="long">
 			select last_insert_id()
 		</selectKey>
@@ -103,7 +97,7 @@
 	
 	<!-- listTopByName -->
 	<select id="listTopByName" resultMap="topDelayStatResult">
-		select p.* , d.DELAY_TIME,d.MAX_DELAY_TIME,d.MIN_DELAY_TIME , d.GMT_CREATE
+		select p.* , d.DELAY_TIME , d.GMT_CREATE
 		from DELAY_STAT d , (
 			select p.CHANNEL_ID , p.ID as PIPELINE_ID , c.NAME as CHANNEL_NAME, p.NAME as PIPELINE_NAME from CHANNEL c , PIPELINE p  
 			where 1 = 1 and c.ID = p.CHANNEL_ID

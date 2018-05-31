@@ -44,7 +44,7 @@ function changeKeyword(id, name, local) {
         <td>
 			<input id="sourceDataMediaName" type="text" name="$dataMediaPairGroup.sourceDataMediaName.key" value="$!dataMediaPair.source.name" class="setting_input" readonly />
 			<input id="sourceDataMediaId" name="$dataMediaPairGroup.sourceDataMediaId.key" value="$!dataMediaPair.source.id" type="hidden" class="setting_input"  />
-			<input type="button" value="查找数据表" onclick="window.open('selectDataMedia.htm?local=source', 'selectSourceDataMedia')">   &nbsp;&nbsp;&nbsp;&nbsp;$!dataMediaPair.source.namespace <span class="red">*</span>
+			<input type="button" value="查找数据表" onclick="window.open('selectDataMedia.htm?local=source', 'selectSourceDataMedia')"><span class="red">*</span>
 			<br />
 			<span class="red">#editDataMediaPairMessage ($dataMediaPairGroup.sourceDataMediaId)</span>
 		</td>
@@ -54,21 +54,11 @@ function changeKeyword(id, name, local) {
         <td>
 			<input id="targetDataMediaName" type="text" name="$dataMediaPairGroup.targetDataMediaName.key" value="$!dataMediaPair.target.name" class="setting_input" readonly />
 			<input id="targetDataMediaId" name="$dataMediaPairGroup.targetDataMediaId.key" value="$!dataMediaPair.target.id" type="hidden" class="setting_input"  />
-			<input type="button" value="查找数据表" onclick="window.open('selectDataMedia.htm?local=target', 'selectTargerDataMedia')">&nbsp;&nbsp;&nbsp;&nbsp;$!dataMediaPair.target.namespace<span class="red">*</span>
+			<input type="button" value="查找数据表" onclick="window.open('selectDataMedia.htm?local=target', 'selectTargerDataMedia')"><span class="red">*</span>
 			<br />
 			<span class="red">#editDataMediaPairMessage ($dataMediaPairGroup.targetDataMediaId)</span>
 		</td>
       </tr>
-      #if ($dataMediaPair.target.source.type.isKafka()) 
-      #set ($startURL = $homeModule.setAction("dataMediaPairAction").addQueryData("dataMediaPairId", $dataMediaPair.id).addQueryData("eventSubmitDoCreateTopic", "true"))
-      <tr>
-			<th>设置</th>
-			<td>分区数：<input name="parnums" style="width:20px;" value="5"/>副本数：<input name="repnum" style="width:20px;" value="1"/>
-				<input type="button" value="生成Topic:  $!dataMediaPair.source.namespace" onclick="javascript:if(confirm('确实建立Kafka Topic：$!dataMediaPair.target.namespace 吗?'))location='$startURL&repnum='+editDataMediaPairForm.repnum.value+'&pnum='+editDataMediaPairForm.parnums.value"/>&nbsp;
-			<span class="red">根据消息key的HashCode分布分区</span>
-			</td>
-		</tr>
-      #end
       <tr>
         <th>权重:</th>
         <td>

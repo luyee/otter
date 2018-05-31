@@ -59,30 +59,30 @@ public class DbLoadMerger {
      * @param eventDatas
      * @return
      */
-    public static List<EventData> merge(List<EventData> eventDatas) {
-        Map<RowKey, EventData> result = new LinkedHashMap<RowKey, EventData>();
-        for (EventData eventData : eventDatas) {
-            merge(eventData, result);
-        }
-        return new LinkedList<EventData>(result.values());
+public static List<EventData> merge(List<EventData> eventDatas) {
+    Map<RowKey, EventData> result = new LinkedHashMap<RowKey, EventData>();
+    for (EventData eventData : eventDatas) {
+        merge(eventData, result);
     }
+    return new LinkedList<EventData>(result.values());
+}
 
-    public static void merge(EventData eventData, Map<RowKey, EventData> result) {
-        EventType eventType = eventData.getEventType();
-        switch (eventType) {
-            case INSERT:
-                mergeInsert(eventData, result);
-                break;
-            case UPDATE:
-                mergeUpdate(eventData, result);
-                break;
-            case DELETE:
-                mergeDelete(eventData, result);
-                break;
-            default:
-                break;
-        }
+public static void merge(EventData eventData, Map<RowKey, EventData> result) {
+    EventType eventType = eventData.getEventType();
+    switch (eventType) {
+        case INSERT:
+            mergeInsert(eventData, result);
+            break;
+        case UPDATE:
+            mergeUpdate(eventData, result);
+            break;
+        case DELETE:
+            mergeDelete(eventData, result);
+            break;
+        default:
+            break;
     }
+}
 
     private static void mergeInsert(EventData eventData, Map<RowKey, EventData> result) {
         // insert无主键变更的处理
